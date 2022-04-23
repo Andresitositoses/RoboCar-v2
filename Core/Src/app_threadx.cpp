@@ -38,6 +38,13 @@
 
 /* USER CODE END PD */
 #define MAINTHREAD_STACK_SIZE 1024
+#define ENCODERS_STACK_SIZE 1024
+
+// LEDs
+#define BLUE_LED_PIN GPIO_PIN_13
+#define BLUE_LED_PORT GPIOE
+#define GREEN_LED_PIN GPIO_PIN_7
+#define GREEN_LED_PORT GPIOH
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
@@ -54,9 +61,9 @@ extern TIM_HandleTypeDef htim16;
 // Main thread
 uint8_t mainThread_stack[MAINTHREAD_STACK_SIZE];
 TX_THREAD mainThread_ptr;
-
-// Rest of threads...
-// ...
+// Encoders thread
+uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
+TX_THREAD encodersThread_ptr;
 
 /* USER CODE END PV */
 
@@ -64,6 +71,7 @@ TX_THREAD mainThread_ptr;
 /* USER CODE BEGIN PFP */
 
 VOID mainThread_entry(ULONG initial_input);
+VOID encodersThread_entry(ULONG initial_input);
 
 /* USER CODE END PFP */
 
@@ -83,6 +91,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 	/* USER CODE BEGIN App_ThreadX_Init */
 	tx_thread_create(&mainThread_ptr, "mainThread", mainThread_entry, 0,
 			mainThread_stack, MAINTHREAD_STACK_SIZE, 15, 15, 1, TX_AUTO_START);
+	tx_thread_create(&encodersThread_ptr, "encodersThread",
+			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
+			15, 15, 1, TX_AUTO_START);
 	/* USER CODE END App_ThreadX_Init */
 
 	return ret;
@@ -108,31 +119,16 @@ void MX_ThreadX_Init(void) {
 /* USER CODE BEGIN 1 */
 VOID mainThread_entry(ULONG initial_input) {
 	while (1) {
-		print(&huart1, "hilo 1\n");
+		print(&huart1, "hilo 1: ", 1.0);
 		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+		tx_thread_sleep(100); // 10 cs -> 0.1 s -> 100 ms
+	}
+}
+
+VOID encodersThread_entry(ULONG initial_input) {
+	while (1) {
+		print(&huart1, "hilo 2: ", 2.0);
+		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
 		tx_thread_sleep(10); // 10 cs -> 0.1 s -> 100 ms
 	}
-}
-
-
-// Print functions for C++
-
-void print(char *str) {
-	std::string cadena = str;
-	for (unsigned int i = 0; i < cadena.length(); i++) {
-		HAL_UART_Transmit(&huart1, (uint8_t*) &cadena.at(i), 1, HAL_MAX_DELAY);
-	}
-}
-
-void print(float num) {
-	std::string cadena = std::to_string(num);
-	for (unsigned int i = 0; i < cadena.length(); i++) {
-		HAL_UART_Transmit(&huart1, (uint8_t*) &cadena.at(i), 1, HAL_MAX_DELAY);
-	}
-}
-
-void print(char *str, float num) {
-	print(str);
-	print(num);
-	print("\n");
 }
