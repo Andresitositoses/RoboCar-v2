@@ -77,8 +77,8 @@ static void MX_UART4_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_UCPD1_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
-static void MX_TIM4_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -128,8 +128,8 @@ int main(void) {
 	MX_USART1_UART_Init();
 	MX_UCPD1_Init();
 	MX_USB_OTG_FS_PCD_Init();
-	MX_TIM4_Init();
 	MX_TIM16_Init();
+	MX_TIM4_Init();
 	/* USER CODE BEGIN 2 */
 
 	/* USER CODE END 2 */
@@ -137,7 +137,6 @@ int main(void) {
 	MX_ThreadX_Init();
 
 	/* We should never get here as control is now taken by the scheduler */
-
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
@@ -399,7 +398,7 @@ static void MX_OCTOSPI1_Init(void) {
 	sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_1_LOW;
 	sOspiManagerCfg.IOHighPort = HAL_OSPIM_IOPORT_1_HIGH;
 	if (HAL_OSPIM_Config(&hospi1, &sOspiManagerCfg,
-	HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
+			HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
 		Error_Handler();
 	}
 	HAL_OSPI_DLYB_Cfg_Struct.Units = 0;
@@ -456,7 +455,7 @@ static void MX_OCTOSPI2_Init(void) {
 	sOspiManagerCfg.IOLowPort = HAL_OSPIM_IOPORT_2_LOW;
 	sOspiManagerCfg.IOHighPort = HAL_OSPIM_IOPORT_2_HIGH;
 	if (HAL_OSPIM_Config(&hospi2, &sOspiManagerCfg,
-	HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
+			HAL_OSPI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
 		Error_Handler();
 	}
 	HAL_OSPI_DLYB_Cfg_Struct.Units = 0;
@@ -514,9 +513,9 @@ static void MX_SPI2_Init(void) {
 	}
 	HAL_SPI_AutonomousMode_Cfg_Struct.TriggerState = SPI_AUTO_MODE_DISABLE;
 	HAL_SPI_AutonomousMode_Cfg_Struct.TriggerSelection =
-	SPI_GRP1_GPDMA_CH0_TCF_TRG;
+			SPI_GRP1_GPDMA_CH0_TCF_TRG;
 	HAL_SPI_AutonomousMode_Cfg_Struct.TriggerPolarity =
-	SPI_TRIG_POLARITY_RISING;
+			SPI_TRIG_POLARITY_RISING;
 	if (HAL_SPIEx_SetConfigAutonomousMode(&hspi2,
 			&HAL_SPI_AutonomousMode_Cfg_Struct) != HAL_OK) {
 		Error_Handler();
@@ -609,17 +608,17 @@ static void MX_TIM16_Init(void) {
 	if (HAL_TIM_Base_Init(&htim16) != HAL_OK) {
 		Error_Handler();
 	}
-	if (HAL_TIM_PWM_Init(&htim16) != HAL_OK) {
+	if (HAL_TIM_OC_Init(&htim16) != HAL_OK) {
 		Error_Handler();
 	}
-	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 500;
+	sConfigOC.OCMode = TIM_OCMODE_TIMING;
+	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 	sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-	if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1)
+	if (HAL_TIM_OC_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1)
 			!= HAL_OK) {
 		Error_Handler();
 	}
@@ -818,8 +817,8 @@ static void MX_GPIO_Init(void) {
 	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOI_CLK_ENABLE();
-	__HAL_RCC_GPIOH_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOH_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	__HAL_RCC_GPIOE_CLK_ENABLE();
 	__HAL_RCC_GPIOF_CLK_ENABLE();
@@ -835,10 +834,17 @@ static void MX_GPIO_Init(void) {
 	HAL_GPIO_WritePin(WRLS_WKUP_B_GPIO_Port, WRLS_WKUP_B_Pin, GPIO_PIN_RESET);
 
 	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
 
 	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOF, Mems_STSAFE_RESET_Pin | WRLS_WKUP_W_Pin,
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7 | GPIO_PIN_13, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOF,
+			Mems_STSAFE_RESET_Pin | GPIO_PIN_13 | WRLS_WKUP_W_Pin,
 			GPIO_PIN_RESET);
 
 	/*Configure GPIO pins : WRLS_FLOW_Pin Mems_VLX_GPIO_Pin Mems_INT_LPS22HH_Pin */
@@ -889,9 +895,15 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(WRLS_WKUP_B_GPIO_Port, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : WRLS_NOTIFY_Pin Mems_INT_IIS2MDC_Pin USB_IANA_Pin Mems_INT_IIS2MDCD9_Pin */
-	GPIO_InitStruct.Pin = WRLS_NOTIFY_Pin | Mems_INT_IIS2MDC_Pin | USB_IANA_Pin
-			| Mems_INT_IIS2MDCD9_Pin;
+	/*Configure GPIO pin : PC1 */
+	GPIO_InitStruct.Pin = GPIO_PIN_1;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : WRLS_NOTIFY_Pin Mems_INT_IIS2MDC_Pin USB_IANA_Pin */
+	GPIO_InitStruct.Pin = WRLS_NOTIFY_Pin | Mems_INT_IIS2MDC_Pin | USB_IANA_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -902,39 +914,6 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-	/*Configure GPIO pin : PE7 */
-	GPIO_InitStruct.Pin = GPIO_PIN_7;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PD8 Mems_INT_IIS2MDCD9_Pin */
-	GPIO_InitStruct.Pin = GPIO_PIN_8 | Mems_INT_IIS2MDCD9_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-	/*Configure GPIO pins : PD9 */
-	GPIO_InitStruct.Pin = GPIO_PIN_9;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-	/*Configure GPIO pin : PC1 */
-	GPIO_InitStruct.Pin = GPIO_PIN_1;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-	/*Configure GPIO pin : PF13 */
-	GPIO_InitStruct.Pin = GPIO_PIN_13;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
 	/*Configure GPIO pins : USB_UCPD_FLT_Pin Mems_ISM330DLC_INT1_Pin */
 	GPIO_InitStruct.Pin = USB_UCPD_FLT_Pin | Mems_ISM330DLC_INT1_Pin;
@@ -948,10 +927,30 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(USB_VBUS_SENSE_GPIO_Port, &GPIO_InitStruct);
 
+	/*Configure GPIO pins : PE7 PE13 */
+	GPIO_InitStruct.Pin = GPIO_PIN_7 | GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : PD8 Mems_INT_IIS2MDCD9_Pin */
+	GPIO_InitStruct.Pin = GPIO_PIN_8 | Mems_INT_IIS2MDCD9_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
 	/*Configure GPIO pins : Mems_STSAFE_RESET_Pin WRLS_WKUP_W_Pin */
 	GPIO_InitStruct.Pin = Mems_STSAFE_RESET_Pin | WRLS_WKUP_W_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : PF13 */
+	GPIO_InitStruct.Pin = GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 

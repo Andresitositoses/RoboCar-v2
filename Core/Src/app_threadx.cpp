@@ -21,7 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "app_threadx.h"
 #include "main.h"
-#include "string"
+#include "print.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -63,12 +63,6 @@ TX_THREAD mainThread_ptr;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 
-// Print functions
-void print(char *str);
-void print(float value);
-void print(char* str, float value);
-
-// Threads functions
 VOID mainThread_entry(ULONG initial_input);
 
 /* USER CODE END PFP */
@@ -113,9 +107,8 @@ void MX_ThreadX_Init(void) {
 
 /* USER CODE BEGIN 1 */
 VOID mainThread_entry(ULONG initial_input) {
-	float numero = 12.3f;
 	while (1) {
-		print("Valor: ", numero);
+		print(&huart1, "hilo 1\n");
 		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 		tx_thread_sleep(10); // 10 cs -> 0.1 s -> 100 ms
 	}
