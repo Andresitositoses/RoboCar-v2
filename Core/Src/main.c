@@ -608,17 +608,17 @@ static void MX_TIM16_Init(void) {
 	if (HAL_TIM_Base_Init(&htim16) != HAL_OK) {
 		Error_Handler();
 	}
-	if (HAL_TIM_OC_Init(&htim16) != HAL_OK) {
+	if (HAL_TIM_PWM_Init(&htim16) != HAL_OK) {
 		Error_Handler();
 	}
-	sConfigOC.OCMode = TIM_OCMODE_TIMING;
+	sConfigOC.OCMode = TIM_OCMODE_PWM1;
 	sConfigOC.Pulse = 0;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 	sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
 	sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-	if (HAL_TIM_OC_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1)
+	if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1)
 			!= HAL_OK) {
 		Error_Handler();
 	}
@@ -915,8 +915,9 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : USB_UCPD_FLT_Pin Mems_ISM330DLC_INT1_Pin */
-	GPIO_InitStruct.Pin = USB_UCPD_FLT_Pin | Mems_ISM330DLC_INT1_Pin;
+	/*Configure GPIO pins : USB_UCPD_FLT_Pin PE14 Mems_ISM330DLC_INT1_Pin */
+	GPIO_InitStruct.Pin = USB_UCPD_FLT_Pin | GPIO_PIN_14
+			| Mems_ISM330DLC_INT1_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -934,8 +935,8 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : PD8 Mems_INT_IIS2MDCD9_Pin */
-	GPIO_InitStruct.Pin = GPIO_PIN_8 | Mems_INT_IIS2MDCD9_Pin;
+	/*Configure GPIO pins : PD8 Mems_INT_IIS2MDCD9_Pin_Pin */
+	GPIO_InitStruct.Pin = GPIO_PIN_8 | Mems_INT_IIS2MDCD9_Pin_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);

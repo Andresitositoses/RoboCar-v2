@@ -185,8 +185,8 @@ void Error_Handler(void);
 #define WRLS_SPI2_NSS_GPIO_Port GPIOB
 #define USB_UCPD_CC2_Pin GPIO_PIN_15
 #define USB_UCPD_CC2_GPIO_Port GPIOB
-#define Mems_INT_IIS2MDCD9_Pin GPIO_PIN_9
-#define Mems_INT_IIS2MDCD9_GPIO_Port GPIOD
+#define Mems_INT_IIS2MDCD9_Pin_Pin GPIO_PIN_9
+#define Mems_INT_IIS2MDCD9_Pin_GPIO_Port GPIOD
 #define Mems_STSAFE_RESET_Pin GPIO_PIN_11
 #define Mems_STSAFE_RESET_GPIO_Port GPIOF
 #define Mems_ISM330DLC_INT1_Pin GPIO_PIN_11
