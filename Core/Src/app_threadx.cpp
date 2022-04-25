@@ -36,12 +36,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 // Stacks sizes
-#define MAINTHREAD_STACK_SIZE 1024
+#define MAINTHREAD_STACK_SIZE 2048
 #define ENCODERS_STACK_SIZE 1024
-// Measure parameters
-#define MEASURES_FOR_SPEED          3
-#define MAX_ATTEMPTS_TO_READ        450000
-#define CYCLES_PER_SECOND			160000000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,8 +50,8 @@
 
 // Handlers
 extern UART_HandleTypeDef huart1;
-extern TIM_HandleTypeDef htim4;
-extern TIM_HandleTypeDef htim16;
+
+// Wheels
 
 /////////////////////////
 /// THREAD VARIABLES ///
@@ -69,7 +65,6 @@ int moving = 0;
 // Encoder threads
 uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
 TX_THREAD encodersThread_ptr;
-float left_wheel_speed = 0, right_wheel_speed = 0;
 
 /* USER CODE END PV */
 
@@ -126,7 +121,7 @@ void MX_ThreadX_Init(void) {
 /* USER CODE BEGIN 1 */
 VOID mainThread_entry(ULONG initial_input) {
 	while (1) {
-		print(&huart1, "hilo 1: ", 1.0);
+		ruedaIzq->showCalibrationValues();
 		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 		tx_thread_sleep(100); // 1s
 	}
@@ -137,53 +132,12 @@ VOID encodersThread_entry(ULONG initial_input) {
 	while (1) {
 		// Speed calculation
 		if (moving) {
-			left_wheel_speed = getSpeed(LEFT_ENCODER_PORT, LEFT_ENCODER_PIN);
-			right_wheel_speed = getSpeed(RIGHT_ENCODER_PORT, RIGHT_ENCODER_PIN);
-		} else {
-			left_wheel_speed = 0;
-			right_wheel_speed = 0;
+			// Update wheels speeds
+			//TODO: corroborar buen funcionamiento antes de utilizar
 		}
 
-		// Thread delay
 		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
-		tx_thread_sleep(1); // 10 ms
+		tx_thread_sleep(10); // 100 ms
 	}
-}
-
-float getSpeed(GPIO_TypeDef *port, uint32_t pin) {
-
-	// Initial measure
-	ULONG startTime = DWT->CYCCNT;
-	int cont = 0;
-
-	// Gets the time it takes to change between 0's and 1's MEASURES_FOR_SPEED times
-	for (int i = 0; i < MEASURES_FOR_SPEED; i++) {
-		// Exit the loop in case the wheel is stopped
-		while (HAL_GPIO_ReadPin(port, pin) != 1 && cont++ < MAX_ATTEMPTS_TO_READ);
-		if (cont >= MAX_ATTEMPTS_TO_READ) {
-			return 0;
-		} else {
-			cont = 0;
-		}
-		while (HAL_GPIO_ReadPin(port, pin) != 0 && cont++ < MAX_ATTEMPTS_TO_READ);
-		if (cont >= MAX_ATTEMPTS_TO_READ) {
-			return 0;
-		} else {
-			cont = 0;
-		}
-	}
-
-	// End measure
-	ULONG stopTime = DWT->CYCCNT;
-
-	// Reset counter after reboot
-	if (startTime == 0){
-		CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-		DWT->CYCCNT = 0;
-		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-	}
-
-	return CYCLES_PER_SECOND * MEASURES_FOR_SPEED
-			/ (float) abs((int) stopTime - (int) startTime);
 }
 /* USER CODE END 1 */
