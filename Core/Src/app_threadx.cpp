@@ -22,6 +22,7 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "print.h"
+#include "sensors.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -38,6 +39,7 @@
 // Stacks sizes
 #define MAINTHREAD_STACK_SIZE 2048
 #define ENCODERS_STACK_SIZE 1024
+#define SENSORS_STACK_SIZE 1024
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,10 +53,8 @@
 // Handlers
 extern UART_HandleTypeDef huart1;
 
-// Wheels
-
 /////////////////////////
-/// THREAD VARIABLES ///
+/// THREAD VARIABLES ////
 /////////////////////////
 
 // Main thread
@@ -62,9 +62,13 @@ uint8_t mainThread_stack[MAINTHREAD_STACK_SIZE];
 TX_THREAD mainThread_ptr;
 int moving = 0;
 
-// Encoder threads
+// Encoder thread
 uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
 TX_THREAD encodersThread_ptr;
+
+// Sensors thread
+uint8_t sensorsThread_stack[SENSORS_STACK_SIZE];
+TX_THREAD sensorsThread_ptr;
 
 /* USER CODE END PV */
 
@@ -73,7 +77,7 @@ TX_THREAD encodersThread_ptr;
 
 VOID mainThread_entry(ULONG initial_input);
 VOID encodersThread_entry(ULONG initial_input);
-float getSpeed(GPIO_TypeDef *port, uint32_t pin);
+VOID sensorsThread_entry(ULONG initial_input);
 
 /* USER CODE END PFP */
 
@@ -96,6 +100,9 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 	tx_thread_create(&encodersThread_ptr, (char* )"encodersThread",
 			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
 			15, 15, 1, TX_AUTO_START);
+	tx_thread_create(&sensorsThread_ptr, (char* )"sensorsThread",
+				sensorsThread_entry, 0, sensorsThread_stack, SENSORS_STACK_SIZE,
+				15, 15, 1, TX_AUTO_START);
 	/* USER CODE END App_ThreadX_Init */
 
 	return ret;
@@ -119,16 +126,20 @@ void MX_ThreadX_Init(void) {
 }
 
 /* USER CODE BEGIN 1 */
+
+// Main thread
 VOID mainThread_entry(ULONG initial_input) {
+	moving = 1;
 	while (1) {
-		ruedaIzq->showCalibrationValues();
-		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+
+		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
 		tx_thread_sleep(100); // 1s
 	}
 }
 
 // Encoders thread
 VOID encodersThread_entry(ULONG initial_input) {
+
 	while (1) {
 		// Speed calculation
 		if (moving) {
@@ -136,8 +147,23 @@ VOID encodersThread_entry(ULONG initial_input) {
 			//TODO: corroborar buen funcionamiento antes de utilizar
 		}
 
-		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
+		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 		tx_thread_sleep(10); // 100 ms
+	}
+}
+
+// Sensors thread
+VOID sensorsThread_entry(ULONG initial_input) {
+
+	initSensors();
+
+	print(&huart1, (char *)"Sensors initialized\n");
+
+	while (1) {
+		showAccelGyroValues();
+
+		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
+		tx_thread_sleep(1); // 10 ms
 	}
 }
 /* USER CODE END 1 */

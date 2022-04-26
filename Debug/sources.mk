@@ -32,6 +32,13 @@ CPP_DEPS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 AZURE_RTOS/App \
+Core/Src/BSP/Components/hts221 \
+Core/Src/BSP/Components/iis2mdc \
+Core/Src/BSP/Components/ism330dlc \
+Core/Src/BSP/Components/lps22hh \
+Core/Src/BSP \
+Core/Src/BSP/env_sensors \
+Core/Src/BSP/motion_sensors \
 Core/Src/RoboCar \
 Core/Src \
 Core/Startup \
