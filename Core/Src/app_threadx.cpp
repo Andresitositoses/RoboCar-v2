@@ -22,6 +22,7 @@
 #include "app_threadx.h"
 #include "main.h"
 #include "print.h"
+#include "sensors.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -154,10 +155,15 @@ VOID encodersThread_entry(ULONG initial_input) {
 // Sensors thread
 VOID sensorsThread_entry(ULONG initial_input) {
 
+	initSensors();
+
+	print(&huart1, (char *)"Sensors initialized\n");
+
 	while (1) {
+		showAccelGyroValues();
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(10); // 100 ms
+		tx_thread_sleep(1); // 10 ms
 	}
 }
 /* USER CODE END 1 */
