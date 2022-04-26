@@ -15,7 +15,8 @@ C_SRCS += \
 
 CPP_SRCS += \
 ../Core/Src/app_threadx.cpp \
-../Core/Src/print.cpp 
+../Core/Src/print.cpp \
+../Core/Src/sensors.cpp 
 
 S_UPPER_SRCS += \
 ../Core/Src/tx_initialize_low_level.S 
@@ -33,6 +34,7 @@ OBJS += \
 ./Core/Src/app_threadx.o \
 ./Core/Src/main.o \
 ./Core/Src/print.o \
+./Core/Src/sensors.o \
 ./Core/Src/stm32u5xx_hal_msp.o \
 ./Core/Src/stm32u5xx_hal_timebase_tim.o \
 ./Core/Src/stm32u5xx_it.o \
@@ -46,7 +48,8 @@ S_UPPER_DEPS += \
 
 CPP_DEPS += \
 ./Core/Src/app_threadx.d \
-./Core/Src/print.d 
+./Core/Src/print.d \
+./Core/Src/sensors.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -60,7 +63,7 @@ Core/Src/%.o: ../Core/Src/%.S Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/app_threadx.d ./Core/Src/app_threadx.o ./Core/Src/app_threadx.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/print.d ./Core/Src/print.o ./Core/Src/print.su ./Core/Src/stm32u5xx_hal_msp.d ./Core/Src/stm32u5xx_hal_msp.o ./Core/Src/stm32u5xx_hal_msp.su ./Core/Src/stm32u5xx_hal_timebase_tim.d ./Core/Src/stm32u5xx_hal_timebase_tim.o ./Core/Src/stm32u5xx_hal_timebase_tim.su ./Core/Src/stm32u5xx_it.d ./Core/Src/stm32u5xx_it.o ./Core/Src/stm32u5xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32u5xx.d ./Core/Src/system_stm32u5xx.o ./Core/Src/system_stm32u5xx.su ./Core/Src/tx_initialize_low_level.d ./Core/Src/tx_initialize_low_level.o
+	-$(RM) ./Core/Src/app_threadx.d ./Core/Src/app_threadx.o ./Core/Src/app_threadx.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/print.d ./Core/Src/print.o ./Core/Src/print.su ./Core/Src/sensors.d ./Core/Src/sensors.o ./Core/Src/sensors.su ./Core/Src/stm32u5xx_hal_msp.d ./Core/Src/stm32u5xx_hal_msp.o ./Core/Src/stm32u5xx_hal_msp.su ./Core/Src/stm32u5xx_hal_timebase_tim.d ./Core/Src/stm32u5xx_hal_timebase_tim.o ./Core/Src/stm32u5xx_hal_timebase_tim.su ./Core/Src/stm32u5xx_it.d ./Core/Src/stm32u5xx_it.o ./Core/Src/stm32u5xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32u5xx.d ./Core/Src/system_stm32u5xx.o ./Core/Src/system_stm32u5xx.su ./Core/Src/tx_initialize_low_level.d ./Core/Src/tx_initialize_low_level.o
 
 .PHONY: clean-Core-2f-Src
 

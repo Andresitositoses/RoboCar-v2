@@ -15,6 +15,13 @@ RM := rm -rf
 -include Drivers/STM32U5xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/RoboCar/subdir.mk
+-include Core/Src/BSP/motion_sensors/subdir.mk
+-include Core/Src/BSP/env_sensors/subdir.mk
+-include Core/Src/BSP/Components/lps22hh/subdir.mk
+-include Core/Src/BSP/Components/ism330dlc/subdir.mk
+-include Core/Src/BSP/Components/iis2mdc/subdir.mk
+-include Core/Src/BSP/Components/hts221/subdir.mk
+-include Core/Src/BSP/subdir.mk
 -include Core/Src/subdir.mk
 -include AZURE_RTOS/App/subdir.mk
 -include objects.mk
