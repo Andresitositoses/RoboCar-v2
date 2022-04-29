@@ -41,8 +41,8 @@
 #define LEFT_ENCODER_PIN GPIO_PIN_14
 #define LEFT_ENCODER_PORT GPIOE
 
-#define RIGHT_ENCODER_PIN GPIO_PIN_8
-#define RIGHT_ENCODER_PORT GPIOD
+#define RIGHT_ENCODER_PIN GPIO_PIN_13
+#define RIGHT_ENCODER_PORT GPIOE
 
 // UART communication handler
 extern UART_HandleTypeDef huart1;
