@@ -110,7 +110,7 @@ namespace RoboCar {
 		void stop();
 
 		// Functions related to the speed regulation
-		bool setSpeed(int speed);
+		bool setSpeed(float speed);
 		float getCurrentSpeed();
 		void updateSpeed(int referenceSpeed, int currentSpeed);
 
