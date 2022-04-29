@@ -241,7 +241,7 @@ namespace RoboCar {
 
 		// Calibrates for 10 different pulses
 		goForward();
-		for (int pulse = 0; pulse <= PERIOD; pulse += 100) {
+		for (int pulse = 0; pulse <= PERIOD; pulse += 50) {
 			// Set incremented pulse
 			setPulse(pulse);
 			tx_thread_sleep(100); // 2 seconds
@@ -270,6 +270,15 @@ namespace RoboCar {
 		// Stops the wheel
 		stop();
 		calibrated = true;
+	}
+
+	/*
+	 * Loads pulse-speed pairs from an external vector
+	 */
+	void WheelMotor::loadCalibration(std::vector<std::pair<int, float>> *speeds){
+		for (int i = 0; i < (int) speeds->size(); i++){
+			this->speeds->push_back({speeds->at(i).first, speeds->at(i).second});
+		}
 	}
 
 	/*

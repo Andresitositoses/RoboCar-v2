@@ -116,6 +116,7 @@ namespace RoboCar {
 
 		// Calibration functions
 		void calibrate();
+		void loadCalibration(std::vector<std::pair<int, float>> *speeds);
 		void showCalibrationValues();
 
 	private:
