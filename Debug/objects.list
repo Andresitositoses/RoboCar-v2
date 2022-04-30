@@ -10,6 +10,7 @@
 "./Core/Src/BSP/b_u585i_iot02a_bus.o"
 "./Core/Src/BSP/env_sensors/b_u585i_iot02a_env_sensors.o"
 "./Core/Src/BSP/motion_sensors/b_u585i_iot02a_motion_sensors.o"
+"./Core/Src/RoboCar/RoboCar.o"
 "./Core/Src/RoboCar/WheelMotor.o"
 "./Core/Src/app_threadx.o"
 "./Core/Src/main.o"

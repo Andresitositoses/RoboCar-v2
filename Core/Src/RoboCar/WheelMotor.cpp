@@ -127,6 +127,20 @@ namespace RoboCar {
 		HAL_GPIO_WritePin(backwardPin->port, backwardPin->number, GPIO_PIN_RESET);
 	}
 
+	/*
+	 * @return Minimum speed from speeds vector
+	 */
+	float WheelMotor::getMinSpeed(){
+		return minSpeed;
+	}
+
+	/*
+	 * @return Maximum speed from speeds vector
+	 */
+	float WheelMotor::getMaxSpeed(){
+		return maxSpeed;
+	}
+
 	/**
 	 * @brief Updates wheel speed using the calibrations vector
 	 * @param speed Speed value to set. This value must be between minSpeed and maxSpeed
@@ -229,8 +243,6 @@ namespace RoboCar {
 	 */
 	void WheelMotor::calibrate() {
 
-		print(&huart1, (char *)"Starting calibration...\n");
-
 		// Parameters initialization
 		speeds->clear();
 		minSpeed = INT32_MAX;
@@ -265,7 +277,6 @@ namespace RoboCar {
 				free(par);
 				minSpeed = std::min(minSpeed, speed);
 				maxSpeed = std::max(maxSpeed, speed);
-
 			}
 		}
 
@@ -294,8 +305,6 @@ namespace RoboCar {
 	 * Print functions of vector's speeds
 	 */
 	void WheelMotor::showCalibrationValues() {
-		print(&huart1, (char*) "Pulse-Speed pairs:\n");
-
 		for (int i = 0; i < (int) speeds->size(); i++) {
 			print(&huart1, speeds->at(i).first); print(&huart1, (char*) " --- ", speeds->at(i).second);
 		}

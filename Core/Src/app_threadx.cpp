@@ -23,6 +23,7 @@
 #include "main.h"
 #include "print.h"
 #include "sensors.h"
+#include "RoboCar/RoboCar.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -38,7 +39,7 @@
 /* USER CODE BEGIN PD */
 // Stacks sizes
 #define MAINTHREAD_STACK_SIZE 2048
-#define ENCODERS_STACK_SIZE 1024
+#define ENCODERS_STACK_SIZE 2048
 #define SENSORS_STACK_SIZE 1024
 /* USER CODE END PD */
 
@@ -60,7 +61,7 @@ extern UART_HandleTypeDef huart1;
 // Main thread
 uint8_t mainThread_stack[MAINTHREAD_STACK_SIZE];
 TX_THREAD mainThread_ptr;
-int moving = 0;
+RoboCar::RoboCar *coche;
 
 // Encoder thread
 uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
@@ -92,6 +93,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 
 	/* USER CODE BEGIN App_ThreadX_MEM_POOL */
 	(void) byte_pool;
+	coche = new RoboCar::RoboCar();
 	/* USER CODE END App_ThreadX_MEM_POOL */
 
 	/* USER CODE BEGIN App_ThreadX_Init */
@@ -101,8 +103,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
 			15, 15, 1, TX_AUTO_START);
 	tx_thread_create(&sensorsThread_ptr, (char* )"sensorsThread",
-				sensorsThread_entry, 0, sensorsThread_stack, SENSORS_STACK_SIZE,
-				15, 15, 1, TX_AUTO_START);
+			sensorsThread_entry, 0, sensorsThread_stack, SENSORS_STACK_SIZE, 15,
+			15, 1, TX_AUTO_START);
 	/* USER CODE END App_ThreadX_Init */
 
 	return ret;
@@ -129,9 +131,8 @@ void MX_ThreadX_Init(void) {
 
 // Main thread
 VOID mainThread_entry(ULONG initial_input) {
-	moving = 1;
-	while (1) {
 
+	while (1) {
 		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
 		tx_thread_sleep(100); // 1s
 	}
@@ -141,10 +142,10 @@ VOID mainThread_entry(ULONG initial_input) {
 VOID encodersThread_entry(ULONG initial_input) {
 
 	while (1) {
-		// Speed calculation
-		if (moving) {
-			// Update wheels speeds
-			//TODO: corroborar buen funcionamiento antes de utilizar
+		// Speed control
+		if (coche->isMoving()) {
+			// Update car speed
+			coche->updateSpeed();
 		}
 
 		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
