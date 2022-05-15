@@ -162,10 +162,12 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
+	motionAC_init();
 	print(&huart1, (char*) "Sensors initialized\n");
 
 	while (1) {
 
+		motionAC_calibrate();
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
 		tx_thread_sleep(20); // 200 ms
