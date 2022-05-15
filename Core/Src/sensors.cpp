@@ -115,3 +115,27 @@ void showMagnetometerValues() {
 	print(&huart1, (char*) "", (int) ejesMagn.z);
 }
 
+/*
+ * MEMS functions
+ */
+void MEMS_Read_AccValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
+	*data_x = (float)ejesAcel.x;
+	*data_y = (float)ejesAcel.y;
+	*data_z = (float)ejesAcel.z;
+}
+
+void MEMS_Read_GyrValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesGyroscope();
+	*data_x = (float)ejesAcel.x;
+	*data_y = (float)ejesAcel.y;
+	*data_z = (float)ejesAcel.z;
+}
+
+void MEMS_Read_MagValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesMagnetometer();
+	*data_x = (float)ejesAcel.x;
+	*data_y = (float)ejesAcel.y;
+	*data_z = (float)ejesAcel.z;
+}
+
