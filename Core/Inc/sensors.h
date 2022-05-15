@@ -27,7 +27,7 @@ void showAccelGyroValues();
 void showMagnetometerValues();
 
 void MEMS_Read_AccValue(float *data_x, float *data_y, float *data_z);
-void MEMS_Read_GyrValue(float *data_x, float *data_y, float *data_z);
+void MEMS_Read_GyroValue(float *data_x, float *data_y, float *data_z);
 void MEMS_Read_MagValue(float *data_x, float *data_y, float *data_z);
 
 #endif /* INC_SENSORS_H_ */

@@ -10,6 +10,7 @@
 
 void motionAC_init();
 void motionAC_calibrate(bool print);
+float acc_bias_to_mg(float acc_bias);
 
 void motionGC_init();
 void motionGC_calibrate();

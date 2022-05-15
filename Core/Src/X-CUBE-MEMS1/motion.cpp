@@ -11,6 +11,7 @@
 #include "sensors.h"
 
 #include "X-CUBE-MEMS1/motion_ac.h"
+#include "X-CUBE-MEMS1/motion_gc.h"
 
 #define VERSION_STR_LENG 35
 #define REPORT_INTERVAL 20
@@ -55,7 +56,7 @@ void motionAC_calibrate(bool print_values) {
 
 	float acc_cal_x, acc_cal_y, acc_cal_z;
 
-	// Accelerometer Calibration Algorithm
+	// Read accelerometer values
 	uint8_t is_calibrated = 0;
 	MAC_input_t data_in = { data_in.Acc[0] = 0.0f, data_in.Acc[1] = 0.0f,
 			data_in.Acc[2] = 0.0f };
@@ -68,11 +69,6 @@ void motionAC_calibrate(bool print_values) {
 	data_in.Acc[0] = (float) data_in.Acc[0] / 1000.0f;
 	data_in.Acc[1] = (float) data_in.Acc[1] / 1000.0f;
 	data_in.Acc[2] = (float) data_in.Acc[2] / 1000.0f;
-	data_in.TimeStamp = 0;
-
-	// Run Accelerometer Calibration algorithm
-	DWT->CYCCNT = 0; /* Clear count of clock cycles */
-	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; /* Enable counter */
 
 	MotionAC_Update(&data_in, &is_calibrated);
 
@@ -82,18 +78,18 @@ void motionAC_calibrate(bool print_values) {
 	// Do offset & scale factor calibration
 
 	// Apply correction
-	acc_cal_x = ((data_in.Acc[0] - data_out.AccBias[0])
+	acc_cal_x = ((data_in.Acc[0] - acc_bias_to_mg(data_out.AccBias[0]))
 			* data_out.SF_Matrix[0][0]);
-	acc_cal_y = ((data_in.Acc[1] - data_out.AccBias[1])
+	acc_cal_y = ((data_in.Acc[1] - acc_bias_to_mg(data_out.AccBias[1]))
 			* data_out.SF_Matrix[1][1]);
-	acc_cal_z = ((data_in.Acc[2] - data_out.AccBias[2])
+	acc_cal_z = ((data_in.Acc[2] - acc_bias_to_mg(data_out.AccBias[2]))
 			* data_out.SF_Matrix[2][2]);
 
 	// Offset coefficients
 	if (print_values) {
-		print(&huart1, (char*) "data_out.AccBias[0]: ", data_out.AccBias[0]);
-		print(&huart1, (char*) "data_out.AccBias[1]: ", data_out.AccBias[1]);
-		print(&huart1, (char*) "data_out.AccBias[2]: ", data_out.AccBias[2]);
+		print(&huart1, (char*) "data_out.AccBias[0]: ", acc_bias_to_mg(data_out.AccBias[0]));
+		print(&huart1, (char*) "data_out.AccBias[1]: ", acc_bias_to_mg(data_out.AccBias[1]));
+		print(&huart1, (char*) "data_out.AccBias[2]: ", acc_bias_to_mg(data_out.AccBias[2]));
 
 		// Scale factor coefficients
 		print(&huart1, (char*) "data_out.SF_Matrix[0]: ");
@@ -127,6 +123,24 @@ void motionAC_calibrate(bool print_values) {
 		print(&huart1, (char*) "is calibrated: ", is_calibrated);
 	}
 
+}
+
+float acc_bias_to_mg(float acc_bias) {
+	float ans_float;
+
+	if (acc_bias >= 0.0f) {
+		/* To be MISRA C-2012 compliant the original calculation:
+		 return (int16_t)(acc_bias * 1000.0f + 0.5f);
+		 has been split to separate expressions */
+		ans_float = acc_bias * 1000.0f + 0.5f;
+		return ans_float;
+	} else {
+		/* To be MISRA C-2012 compliant the original calculation:
+		 return (int16_t)(acc_bias * 1000.0f - 0.5f);
+		 has been split to separate expressions */
+		ans_float = acc_bias * 1000.0f - 0.5f;
+		return ans_float;
+	}
 }
 
 void motionGC_calibrate() {
