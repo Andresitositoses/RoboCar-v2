@@ -9,6 +9,9 @@
 #define INC_X_CUBE_MEMS1_MOTION_H_
 
 void motionAC_init();
-void motionAC_calibrate();
+void motionAC_calibrate(bool print);
+
+void motionGC_init();
+void motionGC_calibrate();
 
 #endif /* INC_X_CUBE_MEMS1_MOTION_H_ */

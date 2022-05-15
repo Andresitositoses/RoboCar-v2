@@ -42,16 +42,17 @@ void motionAC_init() {
 
 	// Optional: Get version
 	MotionAC_GetLibVersion(lib_version);
-	print(&huart1, (char*) "Versión de MotionAC: ");
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
-
-	// Initialize DWT register for counting clock cycles purpose
-	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-	DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk; // Disable counter
 }
 
-void motionAC_calibrate() {
+void motionGC_init() {
+
+}
+
+//TODO Habrá que devolver los valores obtenidos, no solamente imprimirlos
+void motionAC_calibrate(bool print_values) {
+
 	float acc_cal_x, acc_cal_y, acc_cal_z;
 
 	// Accelerometer Calibration Algorithm
@@ -65,7 +66,6 @@ void motionAC_calibrate() {
 
 	// Convert acceleration from [mg] to [g]
 	data_in.Acc[0] = (float) data_in.Acc[0] / 1000.0f;
-	print(&huart1, (float) data_in.Acc[0], (char*) " --- ", (float) 1000.0f);
 	data_in.Acc[1] = (float) data_in.Acc[1] / 1000.0f;
 	data_in.Acc[2] = (float) data_in.Acc[2] / 1000.0f;
 	data_in.TimeStamp = 0;
@@ -75,8 +75,6 @@ void motionAC_calibrate() {
 	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; /* Enable counter */
 
 	MotionAC_Update(&data_in, &is_calibrated);
-
-	print(&huart1, (char*) "is calibrated: ", is_calibrated);
 
 	// Get Calibration coeficients
 	MotionAC_GetCalParams(&data_out);
@@ -92,37 +90,46 @@ void motionAC_calibrate() {
 			* data_out.SF_Matrix[2][2]);
 
 	// Offset coefficients
-	print(&huart1, (char*) "data_out.AccBias[0]: ", data_out.AccBias[0]);
-	print(&huart1, (char*) "data_out.AccBias[1]: ", data_out.AccBias[1]);
-	print(&huart1, (char*) "data_out.AccBias[2]: ", data_out.AccBias[2]);
+	if (print_values) {
+		print(&huart1, (char*) "data_out.AccBias[0]: ", data_out.AccBias[0]);
+		print(&huart1, (char*) "data_out.AccBias[1]: ", data_out.AccBias[1]);
+		print(&huart1, (char*) "data_out.AccBias[2]: ", data_out.AccBias[2]);
 
-	// Scale factor coefficients
-	print(&huart1, (char*) "data_out.SF_Matrix[0][0]: ",
-			data_out.SF_Matrix[0][0]);
-	print(&huart1, (char*) "data_out.SF_Matrix[0][1]: ",
-			data_out.SF_Matrix[0][1]);
-	print(&huart1, (char*) "data_out.SF_Matrix[0][2]: ",
-			data_out.SF_Matrix[0][2]);
+		// Scale factor coefficients
+		print(&huart1, (char*) "data_out.SF_Matrix[0]: ");
+		print(&huart1, data_out.SF_Matrix[0][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out.SF_Matrix[0][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out.SF_Matrix[0][2]);
 
-	print(&huart1, (char*) "data_out.SF_Matrix[1][0]: ",
-			data_out.SF_Matrix[1][0]);
-	print(&huart1, (char*) "data_out.SF_Matrix[1][1]: ",
-			data_out.SF_Matrix[1][1]);
-	print(&huart1, (char*) "data_out.SF_Matrix[1][2]: ",
-			data_out.SF_Matrix[1][2]);
+		print(&huart1, (char*) "data_out.SF_Matrix[1]: ");
+		print(&huart1, data_out.SF_Matrix[1][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out.SF_Matrix[1][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out.SF_Matrix[1][2]);
 
-	print(&huart1, (char*) "data_out.SF_Matrix[2][0]: ",
-			data_out.SF_Matrix[2][0]);
-	print(&huart1, (char*) "data_out.SF_Matrix[2][1]: ",
-			data_out.SF_Matrix[2][1]);
-	print(&huart1, (char*) "data_out.SF_Matrix[2][2]: ",
-			data_out.SF_Matrix[2][2]);
+		print(&huart1, (char*) "data_out.SF_Matrix[2]: ");
+		print(&huart1, data_out.SF_Matrix[2][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out.SF_Matrix[2][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out.SF_Matrix[2][2]);
 
-	// Calibrated data
-	print(&huart1, (char*) "nuevo valor: ", acc_cal_x);
-	print(&huart1, (char*) "nuevo valor: ", acc_cal_y);
-	print(&huart1, (char*) "nuevo valor: ", acc_cal_z);
+		// Calibrated data
+		print(&huart1, (char*) "new x's value: ", acc_cal_x);
+		print(&huart1, (char*) "new y's value: ", acc_cal_y);
+		print(&huart1, (char*) "new z's value: ", acc_cal_z);
 
-	// Calibration quality
-	print(&huart1, (char*) "data_out.CalQuality: ", data_out.CalQuality);
+		// Calibration quality
+		print(&huart1, (char*) "data_out.CalQuality: ", data_out.CalQuality);
+		print(&huart1, (char*) "is calibrated: ", is_calibrated);
+	}
+
 }
+
+void motionGC_calibrate() {
+
+}
+

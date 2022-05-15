@@ -167,7 +167,7 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		motionAC_calibrate();
+		motionAC_calibrate(1);
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
 		tx_thread_sleep(20); // 200 ms
