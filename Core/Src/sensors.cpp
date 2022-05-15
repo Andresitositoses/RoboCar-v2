@@ -69,37 +69,49 @@ BSP_MOTION_SENSOR_Axes_t getAxesMagnetometer() {
 
 void showAccelerometerValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesAcel.x);
-	print(&huart1, (int)ejesAcel.y);
-	print(&huart1, (char *)"", (int)ejesAcel.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesAcel.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesAcel.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesAcel.z);
 }
 
 void showGyroscopeValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesGiro = getAxesGyroscope();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesGiro.x);
-	print(&huart1, (int)ejesGiro.y);
-	print(&huart1, (char *)"", (int)ejesGiro.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesGiro.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesGiro.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesGiro.z);
 }
 
 void showAccelGyroValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
 	BSP_MOTION_SENSOR_Axes_t ejesGiro = getAxesGyroscope();
-	print(&huart1, (char *)"accelX="); print(&huart1, (int)ejesAcel.x);
-	print(&huart1, (char *)", accelY="); print(&huart1, (int)ejesAcel.y);
-	print(&huart1, (char *)", accelZ="); print(&huart1, (int)ejesAcel.z);
-	print(&huart1, (char *)" ----- ");
-	print(&huart1, (char *)"gyroX="); print(&huart1, (int)ejesGiro.x);
-	print(&huart1, (char *)", gyroY="); print(&huart1, (int)ejesGiro.y);
-	print(&huart1, (char *)", gyroZ="); print(&huart1, (char *)"", (int)ejesGiro.z);
+	print(&huart1, (char*) "accelX=");
+	print(&huart1, (int) ejesAcel.x);
+	print(&huart1, (char*) ", accelY=");
+	print(&huart1, (int) ejesAcel.y);
+	print(&huart1, (char*) ", accelZ=");
+	print(&huart1, (int) ejesAcel.z);
+	print(&huart1, (char*) " ----- ");
+	print(&huart1, (char*) "gyroX=");
+	print(&huart1, (int) ejesGiro.x);
+	print(&huart1, (char*) ", gyroY=");
+	print(&huart1, (int) ejesGiro.y);
+	print(&huart1, (char*) ", gyroZ=");
+	print(&huart1, (char*) "", (int) ejesGiro.z);
 }
 
 void showMagnetometerValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesMagn = getAxesMagnetometer();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesMagn.x);
-	print(&huart1, (int)ejesMagn.y);
-	print(&huart1, (char *)"", (int)ejesMagn.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesMagn.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesMagn.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesMagn.z);
 }
 

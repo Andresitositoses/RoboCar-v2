@@ -27,8 +27,8 @@ namespace RoboCar {
 	 *
 	 */
 	RoboCar::~RoboCar(){
-		free(leftWheel);
-		free(rightWheel);
+		delete leftWheel;
+		delete rightWheel;
 	}
 
 	void RoboCar::goForward(){
