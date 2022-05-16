@@ -52,7 +52,7 @@ BSP_MOTION_SENSOR_Axes_t getAxesGyroscope() {
 		// Habilitar acelerómetro
 		BSP_MOTION_SENSOR_Init(0, MOTION_GYRO);
 		BSP_MOTION_SENSOR_Enable(0, MOTION_GYRO);
-		HAL_Delay(100);
+		HAL_Delay(70);
 		state = STATE_GYRO;
 	}
 	BSP_MOTION_SENSOR_Axes_t axes;

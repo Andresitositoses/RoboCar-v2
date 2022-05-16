@@ -167,6 +167,7 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
 	motionAC_init();
+	motionGC_init();
 	print(&huart1, (char*) "Sensors initialized\n");
 
 	int freq = (int) (1000U / SAMPLE_FREQUENCY);
@@ -174,10 +175,11 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		motionAC_calibrate(0);
+		//motionAC_calibrate(1);
+		motionGC_calibrate(1);
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(freq); // 200 ms (Algorithm frequency -> 20 ms)
+		tx_thread_sleep(freq); // Algorithm frequency -> 20 ms
 	}
 }
 /* USER CODE END 1 */

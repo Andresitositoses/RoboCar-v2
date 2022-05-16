@@ -13,26 +13,26 @@
 #include "X-CUBE-MEMS1/motion_ac.h"
 #include "X-CUBE-MEMS1/motion_gc.h"
 
-#define VERSION_STR_LENG 35
-#define REPORT_INTERVAL 20
+#define VERSION_STR_LENG 		35
+#define REPORT_INTERVAL 		20
+#define SAMPLE_FREQUENCY 		50.0f
 
 // Calibration modes
-#define DYNAMIC_CALIBRATION 0
-#define SIX_POINT_CALIBRATION 1
+#define DYNAMIC_CALIBRATION 	0
+#define SIX_POINT_CALIBRATION 	1
 
 // Handlers
 extern UART_HandleTypeDef huart1;
 
 float acc_cal_x, acc_cal_y, acc_cal_z;
+float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 static volatile uint32_t TimeStamp = 0;
 
 void motionAC_init() {
 
-	// Necesario para el algoritmo de inicialización
+	// Initialization
 	__CRC_CLK_ENABLE()
 	;
-
-	// Initialization
 	char lib_version[VERSION_STR_LENG];
 	MAC_knobs_t Knobs;
 
@@ -44,7 +44,7 @@ void motionAC_init() {
 	Knobs.Sample_ms = REPORT_INTERVAL;
 	MotionAC_SetKnobs(&Knobs);
 
-	// Optional: Get version
+	// Get version
 	MotionAC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
@@ -52,9 +52,27 @@ void motionAC_init() {
 
 void motionGC_init() {
 
+	float sample_frequency = SAMPLE_FREQUENCY;
+
+	// Initialization
+	char lib_version[VERSION_STR_LENG];
+	MGC_knobs_t Knobs;
+
+	// Gyroscope calibration API initialization function
+	MotionGC_Initialize(MGC_MCU_STM32, &sample_frequency);
+
+	// Get current settings and set desired ones
+	MotionGC_GetKnobs(&Knobs);
+	Knobs.AccThr = 0.008f;
+	Knobs.GyroThr = 0.15f;
+	MotionGC_SetKnobs(&Knobs);
+
+	// Get version
+	MotionGC_GetLibVersion(lib_version);
+	print(&huart1, (char*) lib_version);
+	print(&huart1, (char*) "\n");
 }
 
-//TODO Habrá que devolver los valores obtenidos, no solamente imprimirlos
 void motionAC_calibrate(bool print_values) {
 
 	uint8_t is_calibrated = 0;
@@ -90,6 +108,8 @@ void motionAC_calibrate(bool print_values) {
 
 	// Offset coefficients
 	if (print_values) {
+
+		// Bias values
 		print(&huart1, (char*) "data_out.AccBias[0]: ",
 				acc_bias_to_mg(data_out.AccBias[0]));
 		print(&huart1, (char*) "data_out.AccBias[1]: ",
@@ -120,14 +140,13 @@ void motionAC_calibrate(bool print_values) {
 		print(&huart1, (char*) "", data_out.SF_Matrix[2][2]);
 
 		// Calibrated data
-		print(&huart1, (char*) "x's value: ");
-		print(&huart1, data_in.Acc[0], (char*) " --> ", acc_cal_x);
-		print(&huart1, (char*) "y's value: ");
-		print(&huart1, data_in.Acc[1], (char*) " --> ", acc_cal_y);
-		print(&huart1, (char*) "z's value: ");
-		print(&huart1, data_in.Acc[2], (char*) " --> ", acc_cal_z);
+		print(&huart1, (char*) "Acc_x's value: ");
+		print(&huart1, acc_x_mg, (char*) " --> ", acc_cal_x);
+		print(&huart1, (char*) "Acc_y's value: ");
+		print(&huart1, acc_y_mg, (char*) " --> ", acc_cal_y);
+		print(&huart1, (char*) "Acc_z's value: ");
+		print(&huart1, acc_z_mg, (char*) " --> ", acc_cal_z);
 
-		// Calibration quality
 		print(&huart1, (char*) "data_out.CalQuality: ", data_out.CalQuality);
 		print(&huart1, (char*) (char*) "TimeStamp (ms): ", data_in.TimeStamp);
 		print(&huart1, (char*) "is calibrated: ", is_calibrated);
@@ -140,21 +159,85 @@ float acc_bias_to_mg(float acc_bias) {
 	float ans_float;
 
 	if (acc_bias >= 0.0f) {
-		/* To be MISRA C-2012 compliant the original calculation:
-		 return (int16_t)(acc_bias * 1000.0f + 0.5f);
-		 has been split to separate expressions */
 		ans_float = acc_bias * 1000.0f + 0.5f;
 		return ans_float;
 	} else {
-		/* To be MISRA C-2012 compliant the original calculation:
-		 return (int16_t)(acc_bias * 1000.0f - 0.5f);
-		 has been split to separate expressions */
 		ans_float = acc_bias * 1000.0f - 0.5f;
 		return ans_float;
 	}
 }
 
-void motionGC_calibrate() {
+void motionGC_calibrate(bool print_values) {
 
+	// Read accelerometer and gyroscope values
+	int bias_update = 0;
+	float acc_x_mg, acc_y_mg, acc_z_mg;
+	float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
+	MGC_input_t data_in = { data_in.Acc[0] = 0.0f, data_in.Acc[1] = 0.0f,
+			data_in.Acc[2] = 0.0f, data_in.Gyro[0] = 0.0f, data_in.Gyro[1] =
+					0.0f, data_in.Gyro[2] = 0.0f };
+	MGC_output_t data_out;
+
+	// Get acceleration X/Y/Z in mg
+	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
+
+	// Get angular rate X/Y/Z in mdps
+	MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
+
+	// Convert acceleration from [mg] to [g]
+	data_in.Acc[0] = (float) acc_x_mg / 1000.0f;
+	data_in.Acc[1] = (float) acc_y_mg / 1000.0f;
+	data_in.Acc[2] = (float) acc_z_mg / 1000.0f;
+
+	// Convert angular velocity from [mdps] to [dps]
+	data_in.Gyro[0] = (float) gyr_x_mpds / 1000.0f;
+	data_in.Gyro[1] = (float) gyr_y_mpds / 1000.0f;
+	data_in.Gyro[2] = (float) gyr_z_mpds / 1000.0f;
+
+	// Gyroscope calibration algorithm update
+	MotionGC_Update(&data_in, &data_out, &bias_update);
+
+	// Get Calibration coeficients
+	MotionGC_GetCalParams(&data_out);
+
+	// Do offset & scale factor calibration (bias values [mdps])
+	gyr_cal_x = gyr_x_mpds - gyro_bias_to_mdps(data_out.GyroBiasX);
+	gyr_cal_y = gyr_y_mpds - gyro_bias_to_mdps(data_out.GyroBiasY);
+	gyr_cal_z = gyr_z_mpds - gyro_bias_to_mdps(data_out.GyroBiasZ);
+
+	// Offset coefficients
+	if (print_values) {
+
+		// Bias values
+		print(&huart1, (char*) "data_out.GyroBiasX: ",
+				gyro_bias_to_mdps(data_out.GyroBiasX));
+		print(&huart1, (char*) "data_out.GyroBiasY: ",
+				gyro_bias_to_mdps(data_out.GyroBiasY));
+		print(&huart1, (char*) "data_out.GyroBiasZ: ",
+				gyro_bias_to_mdps(data_out.GyroBiasZ));
+
+		// Data convertion
+		print(&huart1, (char*) "Gyr_x's value: ");
+		print(&huart1, gyr_x_mpds, (char*) " --> ", gyr_cal_x);
+		print(&huart1, (char*) "Gyr_y's value: ");
+		print(&huart1, gyr_y_mpds, (char*) " --> ", gyr_cal_y);
+		print(&huart1, (char*) "Gyr_z's value: ");
+		print(&huart1, gyr_z_mpds, (char*) " --> ", gyr_cal_z);
+
+		print(&huart1, (char*) "bias_update: ", bias_update);
+	}
+
+}
+
+float gyro_bias_to_mdps(float gyro_bias) {
+	float mdps_float;
+
+	if (gyro_bias >= 0.0f) {
+		mdps_float = gyro_bias * 1000.0f + 0.5f;
+		return mdps_float;
+	} else {
+		mdps_float = gyro_bias * 1000.0f - 0.5f;
+		return mdps_float;
+	}
 }
 
