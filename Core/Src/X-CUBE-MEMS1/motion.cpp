@@ -23,6 +23,9 @@
 // Handlers
 extern UART_HandleTypeDef huart1;
 
+float acc_cal_x, acc_cal_y, acc_cal_z;
+static volatile uint32_t TimeStamp = 0;
+
 void motionAC_init() {
 
 	// Necesario para el algoritmo de inicialización
@@ -54,42 +57,45 @@ void motionGC_init() {
 //TODO Habrá que devolver los valores obtenidos, no solamente imprimirlos
 void motionAC_calibrate(bool print_values) {
 
-	float acc_cal_x, acc_cal_y, acc_cal_z;
-
-	// Read accelerometer values
 	uint8_t is_calibrated = 0;
+	uint32_t time_stamp_uint32;
+	float acc_x_mg, acc_y_mg, acc_z_mg;
 	MAC_input_t data_in = { data_in.Acc[0] = 0.0f, data_in.Acc[1] = 0.0f,
 			data_in.Acc[2] = 0.0f };
 	MAC_output_t data_out;
 
-	// Get acceleration X/Y/Z in g
-	MEMS_Read_AccValue(&data_in.Acc[0], &data_in.Acc[1], &data_in.Acc[2]);
+	// Read acceleration X/Y/Z values in mg
+	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
 
 	// Convert acceleration from [mg] to [g]
-	data_in.Acc[0] = (float) data_in.Acc[0] / 1000.0f;
-	data_in.Acc[1] = (float) data_in.Acc[1] / 1000.0f;
-	data_in.Acc[2] = (float) data_in.Acc[2] / 1000.0f;
+	data_in.Acc[0] = (float) acc_x_mg / 1000.0f;
+	data_in.Acc[1] = (float) acc_y_mg / 1000.0f;
+	data_in.Acc[2] = (float) acc_z_mg / 1000.0f;
+	time_stamp_uint32 = TimeStamp * REPORT_INTERVAL;
+	data_in.TimeStamp = (int) time_stamp_uint32;
 
+	// data_in -> acceleration [g] and timestamp values [ms]
 	MotionAC_Update(&data_in, &is_calibrated);
 
 	// Get Calibration coeficients
 	MotionAC_GetCalParams(&data_out);
 
-	// Do offset & scale factor calibration
-
-	// Apply correction
-	acc_cal_x = ((data_in.Acc[0] - acc_bias_to_mg(data_out.AccBias[0]))
+	// Do offset & scale factor calibration (acceleration [mg] and bias values [mg])
+	acc_cal_x = ((acc_x_mg - acc_bias_to_mg(data_out.AccBias[0]))
 			* data_out.SF_Matrix[0][0]);
-	acc_cal_y = ((data_in.Acc[1] - acc_bias_to_mg(data_out.AccBias[1]))
+	acc_cal_y = ((acc_y_mg - acc_bias_to_mg(data_out.AccBias[1]))
 			* data_out.SF_Matrix[1][1]);
-	acc_cal_z = ((data_in.Acc[2] - acc_bias_to_mg(data_out.AccBias[2]))
+	acc_cal_z = ((acc_z_mg - acc_bias_to_mg(data_out.AccBias[2]))
 			* data_out.SF_Matrix[2][2]);
 
 	// Offset coefficients
 	if (print_values) {
-		print(&huart1, (char*) "data_out.AccBias[0]: ", acc_bias_to_mg(data_out.AccBias[0]));
-		print(&huart1, (char*) "data_out.AccBias[1]: ", acc_bias_to_mg(data_out.AccBias[1]));
-		print(&huart1, (char*) "data_out.AccBias[2]: ", acc_bias_to_mg(data_out.AccBias[2]));
+		print(&huart1, (char*) "data_out.AccBias[0]: ",
+				acc_bias_to_mg(data_out.AccBias[0]));
+		print(&huart1, (char*) "data_out.AccBias[1]: ",
+				acc_bias_to_mg(data_out.AccBias[1]));
+		print(&huart1, (char*) "data_out.AccBias[2]: ",
+				acc_bias_to_mg(data_out.AccBias[2]));
 
 		// Scale factor coefficients
 		print(&huart1, (char*) "data_out.SF_Matrix[0]: ");
@@ -114,15 +120,20 @@ void motionAC_calibrate(bool print_values) {
 		print(&huart1, (char*) "", data_out.SF_Matrix[2][2]);
 
 		// Calibrated data
-		print(&huart1, (char*) "new x's value: ", acc_cal_x);
-		print(&huart1, (char*) "new y's value: ", acc_cal_y);
-		print(&huart1, (char*) "new z's value: ", acc_cal_z);
+		print(&huart1, (char*) "x's value: ");
+		print(&huart1, data_in.Acc[0], (char*) " --> ", acc_cal_x);
+		print(&huart1, (char*) "y's value: ");
+		print(&huart1, data_in.Acc[1], (char*) " --> ", acc_cal_y);
+		print(&huart1, (char*) "z's value: ");
+		print(&huart1, data_in.Acc[2], (char*) " --> ", acc_cal_z);
 
 		// Calibration quality
 		print(&huart1, (char*) "data_out.CalQuality: ", data_out.CalQuality);
+		print(&huart1, (char*) (char*) "TimeStamp (ms): ", data_in.TimeStamp);
 		print(&huart1, (char*) "is calibrated: ", is_calibrated);
 	}
 
+	TimeStamp++;
 }
 
 float acc_bias_to_mg(float acc_bias) {

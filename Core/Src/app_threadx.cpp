@@ -41,6 +41,10 @@
 #define MAINTHREAD_STACK_SIZE 4096
 #define ENCODERS_STACK_SIZE 2048
 #define SENSORS_STACK_SIZE 4096
+
+// Kalman filtering values
+#define SAMPLE_FREQUENCY	50.0f
+extern float acc_cal_x, acc_cal_y, acc_cal_z;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -165,12 +169,15 @@ VOID sensorsThread_entry(ULONG initial_input) {
 	motionAC_init();
 	print(&huart1, (char*) "Sensors initialized\n");
 
+	int freq = (int) (1000U / SAMPLE_FREQUENCY);
+	freq /= 10; // ms to cs
+
 	while (1) {
 
 		motionAC_calibrate(0);
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(20); // 200 ms
+		tx_thread_sleep(freq); // 200 ms (Algorithm frequency -> 20 ms)
 	}
 }
 /* USER CODE END 1 */
