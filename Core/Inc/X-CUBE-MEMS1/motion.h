@@ -10,10 +10,14 @@
 
 void motionAC_init();
 void motionAC_calibrate(bool print);
-float acc_bias_to_mg(float acc_bias);
+
+void motionAC2_init();
+void motionAC2_calibrate(bool print);
 
 void motionGC_init();
 void motionGC_calibrate(bool print);
+
+float acc_bias_to_mg(float acc_bias);
 float gyro_bias_to_mdps(float gyro_bias);
 
 #endif /* INC_X_CUBE_MEMS1_MOTION_H_ */

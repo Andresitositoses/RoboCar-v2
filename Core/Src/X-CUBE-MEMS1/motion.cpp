@@ -12,6 +12,7 @@
 
 #include "X-CUBE-MEMS1/motion_ac.h"
 #include "X-CUBE-MEMS1/motion_gc.h"
+#include "X-CUBE-MEMS1/motion_ac2.h"
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
@@ -27,6 +28,8 @@ extern UART_HandleTypeDef huart1;
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 static volatile uint32_t TimeStamp = 0;
+
+// Init functions
 
 void motionAC_init() {
 
@@ -46,6 +49,30 @@ void motionAC_init() {
 
 	// Get version
 	MotionAC_GetLibVersion(lib_version);
+	print(&huart1, (char*) lib_version);
+	print(&huart1, (char*) "\n");
+}
+
+void motionAC2_init() {
+
+	float sample_frequency = SAMPLE_FREQUENCY;
+
+	// Initialization
+	__CRC_CLK_ENABLE()
+	;
+	char lib_version[VERSION_STR_LENG];
+	MAC2_knobs_t Knobs;
+
+	// Accelerometer calibration API initialization function
+	MotionAC2_Init(MAC2_MCU_STM32, &sample_frequency);
+	MotionAC2_GetKnobs(&Knobs);
+	Knobs.FullScale = (float) 2000; // 2 g value recommended to perform a successful calibration
+	Knobs.CalDuration_s = 120; // Duration of calibration in seconds
+	Knobs.XlNoiseScale = 1.0f;
+	MotionAC2_SetKnobs(&Knobs);
+
+	// Get version
+	MotionAC2_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
 }
@@ -72,6 +99,8 @@ void motionGC_init() {
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
 }
+
+// Calibration functions
 
 void motionAC_calibrate(bool print_values) {
 
@@ -106,7 +135,6 @@ void motionAC_calibrate(bool print_values) {
 	acc_cal_z = ((acc_z_mg - acc_bias_to_mg(data_out.AccBias[2]))
 			* data_out.SF_Matrix[2][2]);
 
-	// Offset coefficients
 	if (print_values) {
 
 		// Bias values
@@ -155,16 +183,56 @@ void motionAC_calibrate(bool print_values) {
 	TimeStamp++;
 }
 
-float acc_bias_to_mg(float acc_bias) {
-	float ans_float;
+void motionAC2_calibrate(bool print_values) {
 
-	if (acc_bias >= 0.0f) {
-		ans_float = acc_bias * 1000.0f + 0.5f;
-		return ans_float;
-	} else {
-		ans_float = acc_bias * 1000.0f - 0.5f;
-		return ans_float;
+	uint8_t is_calibrated = 0;
+	uint64_t time_stamp_uint64;
+	float acc_x_mg, acc_y_mg;
+	MAC2_input_t data_in = { data_in.Acc_X = 0.0f, data_in.Acc_Y = 0.0f };
+	MAC2_cal_params_t data_out;
+
+	// Read acceleration X/Y values in mg
+	MEMS_Read_Acc2Value(&acc_x_mg, &acc_y_mg);
+
+	// Convert acceleration from [mg] to [g]
+	data_in.Acc_X = (float) acc_x_mg / 1000.0f;
+	data_in.Acc_Y = (float) acc_y_mg / 1000.0f;
+	time_stamp_uint64 = TimeStamp * REPORT_INTERVAL;
+
+	// data_in -> acceleration [g] and timestamp values [ms]
+	is_calibrated = MotionAC2_Update(&data_in, time_stamp_uint64);
+
+	// Get Calibration coeficients
+	MotionAC2_GetCalParams(&data_out);
+
+	// Do offset & scale factor calibration (acceleration [mg] and bias values [mg])
+	acc_cal_x = ((acc_x_mg - acc_bias_to_mg(data_out.Bias[0])) * data_out.SF[0]);
+	acc_cal_y = ((acc_y_mg - acc_bias_to_mg(data_out.Bias[1])) * data_out.SF[1]);
+
+	if (print_values) {
+
+		// Bias values
+		print(&huart1, (char*) "data_out.AccBias[0]: ",
+				acc_bias_to_mg(data_out.Bias[0]));
+		print(&huart1, (char*) "data_out.AccBias[1]: ",
+				acc_bias_to_mg(data_out.Bias[1]));
+
+		// Scale factor coefficients
+		print(&huart1, (char*) "data_out.SF_Matrix[0]: ", data_out.SF[0]);
+		print(&huart1, (char*) "data_out.SF_Matrix[1]: ", data_out.SF[1]);
+
+		// Calibrated data
+		print(&huart1, (char*) "Acc_x's value: ");
+		print(&huart1, acc_x_mg, (char*) " --> ", acc_cal_x);
+		print(&huart1, (char*) "Acc_y's value: ");
+		print(&huart1, acc_y_mg, (char*) " --> ", acc_cal_y);
+
+		print(&huart1, (char*) "data_out.CalStatus: ", data_out.CalStatus);
+		print(&huart1, (char*) "TimeStamp (ms): ", (int) time_stamp_uint64);
+		print(&huart1, (char*) "is calibrated: ", is_calibrated);
 	}
+
+	TimeStamp++;
 }
 
 void motionGC_calibrate(bool print_values) {
@@ -205,7 +273,6 @@ void motionGC_calibrate(bool print_values) {
 	gyr_cal_y = gyr_y_mpds - gyro_bias_to_mdps(data_out.GyroBiasY);
 	gyr_cal_z = gyr_z_mpds - gyro_bias_to_mdps(data_out.GyroBiasZ);
 
-	// Offset coefficients
 	if (print_values) {
 
 		// Bias values
@@ -226,7 +293,20 @@ void motionGC_calibrate(bool print_values) {
 
 		print(&huart1, (char*) "bias_update: ", bias_update);
 	}
+}
 
+// Convertion functions
+
+float acc_bias_to_mg(float acc_bias) {
+	float ans_float;
+
+	if (acc_bias >= 0.0f) {
+		ans_float = acc_bias * 1000.0f + 0.5f;
+		return ans_float;
+	} else {
+		ans_float = acc_bias * 1000.0f - 0.5f;
+		return ans_float;
+	}
 }
 
 float gyro_bias_to_mdps(float gyro_bias) {
