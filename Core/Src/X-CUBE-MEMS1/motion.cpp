@@ -21,7 +21,6 @@
 
 // Calibration modes
 #define DYNAMIC_CALIBRATION 	0
-#define SIX_POINT_CALIBRATION 	1
 
 // Handlers
 extern UART_HandleTypeDef huart1;
@@ -29,15 +28,17 @@ extern UART_HandleTypeDef huart1;
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 float mag_cal_x, mag_cal_y, mag_cal_z;
-static volatile uint32_t TimeStamp = 0;
+uint64_t time_stamp_uint64 = 0;
+uint32_t prevTick, currTick;
 
 // Init functions
 
 void motionAC_init() {
 
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
+
 	// Initialization
-	__CRC_CLK_ENABLE()
-	;
 	char lib_version[VERSION_STR_LENG];
 	MAC_knobs_t Knobs;
 
@@ -58,10 +59,10 @@ void motionAC_init() {
 void motionAC2_init() {
 
 	float sample_frequency = SAMPLE_FREQUENCY;
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
 
 	// Initialization
-	__CRC_CLK_ENABLE()
-	;
 	char lib_version[VERSION_STR_LENG];
 	MAC2_knobs_t Knobs;
 
@@ -69,7 +70,7 @@ void motionAC2_init() {
 	MotionAC2_Init(MAC2_MCU_STM32, &sample_frequency);
 	MotionAC2_GetKnobs(&Knobs);
 	Knobs.FullScale = (float) 2000; // 2 g value recommended to perform a successful calibration
-	Knobs.CalDuration_s = 120; // Duration of calibration in seconds
+	Knobs.CalDuration_s = 20; // Duration of calibration in seconds
 	Knobs.XlNoiseScale = 1.0f;
 	MotionAC2_SetKnobs(&Knobs);
 
@@ -82,6 +83,8 @@ void motionAC2_init() {
 void motionGC_init() {
 
 	float sample_frequency = SAMPLE_FREQUENCY;
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
 
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
@@ -119,7 +122,6 @@ void motionMC_init() {
 void motionAC_calibrate(bool print_values) {
 
 	uint8_t is_calibrated = 0;
-	uint32_t time_stamp_uint32;
 	float acc_x_mg, acc_y_mg, acc_z_mg;
 	MAC_input_t data_in = { data_in.Acc[0] = 0.0f, data_in.Acc[1] = 0.0f,
 			data_in.Acc[2] = 0.0f };
@@ -132,8 +134,10 @@ void motionAC_calibrate(bool print_values) {
 	data_in.Acc[0] = (float) acc_x_mg / 1000.0f;
 	data_in.Acc[1] = (float) acc_y_mg / 1000.0f;
 	data_in.Acc[2] = (float) acc_z_mg / 1000.0f;
-	time_stamp_uint32 = TimeStamp * REPORT_INTERVAL;
-	data_in.TimeStamp = (int) time_stamp_uint32;
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	data_in.TimeStamp = time_stamp_uint64;
+	prevTick = currTick;
 
 	// data_in -> acceleration [g] and timestamp values [ms]
 	MotionAC_Update(&data_in, &is_calibrated);
@@ -193,14 +197,11 @@ void motionAC_calibrate(bool print_values) {
 		print(&huart1, (char*) (char*) "TimeStamp (ms): ", data_in.TimeStamp);
 		print(&huart1, (char*) "is calibrated: ", is_calibrated);
 	}
-
-	TimeStamp++;
 }
 
 void motionAC2_calibrate(bool print_values) {
 
 	uint8_t is_calibrated = 0;
-	uint64_t time_stamp_uint64;
 	float acc_x_mg, acc_y_mg;
 	MAC2_input_t data_in = { data_in.Acc_X = 0.0f, data_in.Acc_Y = 0.0f };
 	MAC2_cal_params_t data_out;
@@ -211,7 +212,9 @@ void motionAC2_calibrate(bool print_values) {
 	// Convert acceleration data from [mg] to [g]
 	data_in.Acc_X = (float) acc_x_mg / 1000.0f;
 	data_in.Acc_Y = (float) acc_y_mg / 1000.0f;
-	time_stamp_uint64 = TimeStamp * REPORT_INTERVAL;
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	prevTick = currTick;
 
 	// data_in -> acceleration [g] and timestamp values [ms]
 	is_calibrated = MotionAC2_Update(&data_in, time_stamp_uint64);
@@ -247,8 +250,6 @@ void motionAC2_calibrate(bool print_values) {
 		print(&huart1, (char*) "TimeStamp (ms): ", (int) time_stamp_uint64);
 		print(&huart1, (char*) "is calibrated: ", is_calibrated);
 	}
-
-	TimeStamp++;
 }
 
 void motionGC_calibrate(bool print_values) {
@@ -324,7 +325,10 @@ void motionMC_calibrate(bool print_values) {
 	data_in->Mag[0] = (float) mag_x_mG / 10.0f;
 	data_in->Mag[1] = (float) mag_y_mG / 10.0f;
 	data_in->Mag[2] = (float) mag_z_mG / 10.0f;
-	data_in->TimeStamp = (int) HAL_GetTick();
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	data_in->TimeStamp = time_stamp_uint64;
+	prevTick = currTick;
 
 	// data_in -> magnetometer data [uT]
 	MotionMC_Update(&*data_in);

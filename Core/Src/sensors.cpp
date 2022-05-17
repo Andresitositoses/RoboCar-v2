@@ -14,6 +14,10 @@
 int state = STATE_ACCEL;
 
 void initSensors() {
+
+	__CRC_CLK_ENABLE()
+	;
+
 	// LPS22HH module
 	BSP_ENV_SENSOR_Init(1, ENV_TEMPERATURE); // Temperature
 	BSP_ENV_SENSOR_Enable(1, ENV_TEMPERATURE);
@@ -119,28 +123,28 @@ void showMagnetometerValues() {
  */
 void MEMS_Read_AccValue(float *data_x, float *data_y, float *data_z) {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
-	*data_x = (float)ejesAcel.x;
-	*data_y = (float)ejesAcel.y;
-	*data_z = (float)ejesAcel.z;
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
 }
 
 void MEMS_Read_Acc2Value(float *data_x, float *data_y) {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
-	*data_x = (float)ejesAcel.x;
-	*data_y = (float)ejesAcel.y;
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
 }
 
 void MEMS_Read_GyroValue(float *data_x, float *data_y, float *data_z) {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesGyroscope();
-	*data_x = (float)ejesAcel.x;
-	*data_y = (float)ejesAcel.y;
-	*data_z = (float)ejesAcel.z;
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
 }
 
 void MEMS_Read_MagValue(float *data_x, float *data_y, float *data_z) {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesMagnetometer();
-	*data_x = (float)ejesAcel.x;
-	*data_y = (float)ejesAcel.y;
-	*data_z = (float)ejesAcel.z;
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
 }
 

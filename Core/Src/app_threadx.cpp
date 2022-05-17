@@ -167,6 +167,7 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
+
 	motionAC_init();
 	motionAC2_init();
 	motionGC_init();
