@@ -13,6 +13,7 @@
 #include "X-CUBE-MEMS1/motion_ac.h"
 #include "X-CUBE-MEMS1/motion_gc.h"
 #include "X-CUBE-MEMS1/motion_ac2.h"
+#include "X-CUBE-MEMS1/motion_mc.h"
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
@@ -27,6 +28,7 @@ extern UART_HandleTypeDef huart1;
 
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
+float mag_cal_x, mag_cal_y, mag_cal_z;
 static volatile uint32_t TimeStamp = 0;
 
 // Init functions
@@ -96,6 +98,18 @@ void motionGC_init() {
 
 	// Get version
 	MotionGC_GetLibVersion(lib_version);
+	print(&huart1, (char*) lib_version);
+	print(&huart1, (char*) "\n");
+}
+
+void motionMC_init() {
+
+	// Initialization
+	char lib_version[VERSION_STR_LENG];
+
+	MotionMC_Initialize(REPORT_INTERVAL, 1);
+
+	MotionMC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
 }
@@ -295,6 +309,101 @@ void motionGC_calibrate(bool print_values) {
 	}
 }
 
+void motionMC_calibrate(bool print_values) {
+
+	float mag_x_mG, mag_y_mG, mag_z_mG;
+	MMC_Input_t *data_in = new MMC_Input_t;
+	MMC_Output_t *data_out = new MMC_Output_t;
+
+	// Read magnetometer X/Y/Z values in mGauss
+	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
+
+	// Convert magnetometer data from [mGauss] to [uT]
+	data_in->Mag[0] = (float) mag_x_mG / 10.0f;
+	data_in->Mag[1] = (float) mag_y_mG / 10.0f;
+	data_in->Mag[2] = (float) mag_z_mG / 10.0f;
+	data_in->TimeStamp = (int) HAL_GetTick();
+
+	// data_in -> magnetometer data [uT]
+	MotionMC_Update(&*data_in);
+
+	// Get Calibration coeficients
+	MotionMC_GetCalParams(&*data_out);
+
+	// Do hard & soft iron calibration
+	float *mag_raw_mG = (float*) malloc(sizeof(float) * 3);
+	float *mag_comp_mG = (float*) malloc(sizeof(float) * 3);
+
+	mag_raw_mG[0] = (float) mag_x_mG;
+	mag_raw_mG[1] = (float) mag_y_mG;
+	mag_raw_mG[2] = (float) mag_z_mG;
+
+	// Compensate magnetometer data (coefficients in [mGauss])
+	for (int i = 0; i < 3; i++) {
+		mag_comp_mG[i] = 0.0f;
+		for (int j = 0; j < 3; j++) {
+			mag_comp_mG[i] += (mag_raw_mG[j] - data_out->HI_Bias[j] * 10.0f)
+					* data_out->SF_Matrix[i][j];
+		}
+
+		mag_comp_mG[i] += (mag_comp_mG[i] >= 0.0f) ? 0.5f : -0.5f;
+	}
+
+	mag_cal_x = mag_comp_mG[0];
+	mag_cal_y = mag_comp_mG[1];
+	mag_cal_z = mag_comp_mG[2];
+
+	free(mag_raw_mG);
+	free(mag_comp_mG);
+
+	if (print_values) {
+
+		// Bias values
+		print(&huart1, (char*) "data_out.HI_Bias[0]: ",
+				mag_val_to_mGauss(data_out->HI_Bias[0]));
+		print(&huart1, (char*) "data_out.HI_Bias[1]: ",
+				mag_val_to_mGauss(data_out->HI_Bias[1]));
+		print(&huart1, (char*) "data_out.HI_Bias[2]: ",
+				mag_val_to_mGauss(data_out->HI_Bias[2]));
+
+		// Scale factor coefficients
+		print(&huart1, (char*) "data_out.SF_Matrix[0]: ");
+		print(&huart1, data_out->SF_Matrix[0][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out->SF_Matrix[0][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out->SF_Matrix[0][2]);
+
+		print(&huart1, (char*) "data_out.SF_Matrix[1]: ");
+		print(&huart1, data_out->SF_Matrix[1][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out->SF_Matrix[1][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out->SF_Matrix[1][2]);
+
+		print(&huart1, (char*) "data_out.SF_Matrix[2]: ");
+		print(&huart1, data_out->SF_Matrix[2][0]);
+		print(&huart1, (char*) " ");
+		print(&huart1, data_out->SF_Matrix[2][1]);
+		print(&huart1, (char*) " ");
+		print(&huart1, (char*) "", data_out->SF_Matrix[2][2]);
+
+		// Calibrated data
+		print(&huart1, (char*) "Mag_x's value: ");
+		print(&huart1, mag_x_mG, (char*) " --> ", mag_cal_x);
+		print(&huart1, (char*) "Mag_y's value: ");
+		print(&huart1, mag_y_mG, (char*) " --> ", mag_cal_y);
+		print(&huart1, (char*) "Mag_z's value: ");
+		print(&huart1, mag_z_mG, (char*) " --> ", mag_cal_z);
+
+		print(&huart1, (char*) "data_out.CalQuality: ", data_out->CalQuality);
+		print(&huart1, (char*) (char*) "TimeStamp (ms): ", data_in->TimeStamp);
+
+		free(data_in);
+		free(data_out);
+	}
+}
+
 // Convertion functions
 
 float acc_bias_to_mg(float acc_bias) {
@@ -321,3 +430,14 @@ float gyro_bias_to_mdps(float gyro_bias) {
 	}
 }
 
+float mag_val_to_mGauss(float mag_val_uT) {
+	float mGauss_float;
+
+	if (mag_val_uT >= 0.0f) {
+		mGauss_float = mag_val_uT * 10.0f + 0.5f;
+		return mGauss_float;
+	} else {
+		mGauss_float = mag_val_uT * 10.0f - 0.5f;
+		return mGauss_float;
+	}
+}

@@ -154,6 +154,7 @@ VOID encodersThread_entry(ULONG initial_input) {
 		// Speed control
 		if (coche->isMoving()) {
 			// Update car speed
+			//TODO: Pasar factor extra del magnetómetro como parámetro, indicando a qué rueda aplicárselo
 			coche->updateSpeed();
 		}
 
@@ -169,6 +170,7 @@ VOID sensorsThread_entry(ULONG initial_input) {
 	motionAC_init();
 	motionAC2_init();
 	motionGC_init();
+	motionMC_init();
 	print(&huart1, (char*) "Sensors initialized\n");
 
 	int freq = (int) (1000U / SAMPLE_FREQUENCY);
@@ -177,8 +179,9 @@ VOID sensorsThread_entry(ULONG initial_input) {
 	while (1) {
 
 		//motionAC_calibrate(1);
-		motionAC2_calibrate(1);
+		//motionAC2_calibrate(1);
 		//motionGC_calibrate(1);
+		motionMC_calibrate(1);
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
 		tx_thread_sleep(freq); // Algorithm frequency -> 20 ms
