@@ -128,7 +128,7 @@ void motionAC_calibrate(bool print_values) {
 	// Read acceleration X/Y/Z values in mg
 	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
 
-	// Convert acceleration from [mg] to [g]
+	// Convert acceleration data from [mg] to [g]
 	data_in.Acc[0] = (float) acc_x_mg / 1000.0f;
 	data_in.Acc[1] = (float) acc_y_mg / 1000.0f;
 	data_in.Acc[2] = (float) acc_z_mg / 1000.0f;
@@ -208,7 +208,7 @@ void motionAC2_calibrate(bool print_values) {
 	// Read acceleration X/Y values in mg
 	MEMS_Read_Acc2Value(&acc_x_mg, &acc_y_mg);
 
-	// Convert acceleration from [mg] to [g]
+	// Convert acceleration data from [mg] to [g]
 	data_in.Acc_X = (float) acc_x_mg / 1000.0f;
 	data_in.Acc_Y = (float) acc_y_mg / 1000.0f;
 	time_stamp_uint64 = TimeStamp * REPORT_INTERVAL;
@@ -220,8 +220,10 @@ void motionAC2_calibrate(bool print_values) {
 	MotionAC2_GetCalParams(&data_out);
 
 	// Do offset & scale factor calibration (acceleration [mg] and bias values [mg])
-	acc_cal_x = ((acc_x_mg - acc_bias_to_mg(data_out.Bias[0])) * data_out.SF[0]);
-	acc_cal_y = ((acc_y_mg - acc_bias_to_mg(data_out.Bias[1])) * data_out.SF[1]);
+	acc_cal_x =
+			((acc_x_mg - acc_bias_to_mg(data_out.Bias[0])) * data_out.SF[0]);
+	acc_cal_y =
+			((acc_y_mg - acc_bias_to_mg(data_out.Bias[1])) * data_out.SF[1]);
 
 	if (print_values) {
 
