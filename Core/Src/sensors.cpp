@@ -8,15 +8,7 @@
 #include "sensors.h"
 #include "print.h"
 
-#define STATE_ACCEL 0
-#define STATE_GYRO 1
-
-int state = STATE_ACCEL;
-
 void initSensors() {
-
-	__CRC_CLK_ENABLE()
-	;
 
 	// LPS22HH module
 	BSP_ENV_SENSOR_Init(1, ENV_TEMPERATURE); // Temperature
@@ -26,39 +18,24 @@ void initSensors() {
 
 	// ISM330DLC module
 	BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO); // Accelerometer
+	BSP_MOTION_SENSOR_Init(0, MOTION_GYRO); // Gyroscope
 	BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
-	/* By default only the accelerometer is initialized */
+	BSP_MOTION_SENSOR_Enable(0, MOTION_GYRO);
 
 	// IIS2MDC module
 	BSP_MOTION_SENSOR_Init(1, MOTION_MAGNETO); // Magnetometer
 	BSP_MOTION_SENSOR_Enable(1, MOTION_MAGNETO);
+
+	HAL_Delay(100);
 }
 
 BSP_MOTION_SENSOR_Axes_t getAxesAccelerometer() {
-	if (state == STATE_GYRO) {
-		// Deshabilitar módulo
-		BSP_MOTION_SENSOR_DeInit(0);
-		// Habilitar acelerómetro
-		BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO);
-		BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
-		HAL_Delay(20);
-		state = STATE_ACCEL;
-	}
 	BSP_MOTION_SENSOR_Axes_t axes;
 	BSP_MOTION_SENSOR_GetAxes(0, MOTION_ACCELERO, &axes);
 	return axes;
 }
 
 BSP_MOTION_SENSOR_Axes_t getAxesGyroscope() {
-	if (state == STATE_ACCEL) {
-		// Deshabilitar módulo
-		BSP_MOTION_SENSOR_DeInit(0);
-		// Habilitar acelerómetro
-		BSP_MOTION_SENSOR_Init(0, MOTION_GYRO);
-		BSP_MOTION_SENSOR_Enable(0, MOTION_GYRO);
-		HAL_Delay(70);
-		state = STATE_GYRO;
-	}
 	BSP_MOTION_SENSOR_Axes_t axes;
 	BSP_MOTION_SENSOR_GetAxes(0, MOTION_GYRO, &axes);
 	return axes;
