@@ -43,7 +43,8 @@
 #define SENSORS_STACK_SIZE 4096
 
 // Kalman filtering values
-#define SAMPLE_FREQUENCY	50.0f
+#define CALIBRATION_FREQUENCY 25.0f
+#define SAMPLE_FREQUENCY	100.0f
 extern float acc_cal_x, acc_cal_y, acc_cal_z;
 /* USER CODE END PD */
 
@@ -167,25 +168,32 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
+	motionFX_init();
 
-	motionAC_init();
-	motionAC2_init();
-	motionGC_init();
-	motionMC_init();
 	print(&huart1, (char*) "Sensors initialized\n");
 
-	int freq = (int) (1000U / SAMPLE_FREQUENCY);
-	freq /= 10; // ms to cs
+	int delay = (int) (1000U / CALIBRATION_FREQUENCY);
+	delay /= 10; // ms to cs
+
+	while (!motionFX_calibrate(0)) {
+
+		print(&huart1, (char*) "Calibrando...\n");
+
+		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
+		tx_thread_sleep(delay); // Calibration frequency -> 25 Hz
+	}
+
+	print(&huart1, (char*) "Calibración completada!\n");
+
+	delay = (int) (1000U / SAMPLE_FREQUENCY);
+	delay /= 10; // ms to cs
 
 	while (1) {
 
-		//motionAC_calibrate(1);
-		//motionAC2_calibrate(1);
-		//motionGC_calibrate(1);
-		motionMC_calibrate(1);
+		motionFX_calibrate(1);
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(freq); // Algorithm frequency -> 20 ms
+		tx_thread_sleep (delay); // Algorithm frequency -> 100 Hz
 	}
 }
 /* USER CODE END 1 */

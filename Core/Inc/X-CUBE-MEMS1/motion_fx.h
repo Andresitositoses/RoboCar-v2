@@ -249,10 +249,16 @@ uint8_t MotionFX_GetLibVersion(char *version);
 /**
   * @}
   */
+char MotionFX_LoadMagCalFromNVM(unsigned short int dataSize, unsigned int *data){
+	return (char)1;
+}
 
 /**
   * @}
   */
+char MotionFX_SaveMagCalInNVM(unsigned short int dataSize, unsigned int *data){
+	return (char)1;
+}
 
 /**
   * @}

@@ -14,13 +14,27 @@
 #include "X-CUBE-MEMS1/motion_gc.h"
 #include "X-CUBE-MEMS1/motion_ac2.h"
 #include "X-CUBE-MEMS1/motion_mc.h"
+#include "X-CUBE-MEMS1/motion_fx.h"
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
-#define SAMPLE_FREQUENCY 		50.0f
+#define SAMPLE_FREQUENCY 		25.0f
 
-// Calibration modes
+// For MotionAC
 #define DYNAMIC_CALIBRATION 	0
+
+// For MotionFX
+#define STATE_SIZE (size_t)(2450)
+static uint8_t mfxstate[STATE_SIZE ];
+#define CAL_FREQ  25U /* Algorithm frequency 25 Hz */
+#define ALGO_FREQ  100U /* Algorithm frequency 100 Hz */
+#define ENABLE_6X 0
+#define FROM_UT50_TO_MGAUSS  500.0f
+#define FROM_MGAUSS_TO_UT50  (0.1f/50.0f)
+#define GBIAS_ACC_TH_SC                 (2.0f*0.000765f)
+#define GBIAS_GYRO_TH_SC                (2.0f*0.002f)
+#define GBIAS_MAG_TH_SC                 (2.0f*0.001500f)
+#define DECIMATION                      1U
 
 // Handlers
 extern UART_HandleTypeDef huart1;
@@ -113,6 +127,56 @@ void motionMC_init() {
 	MotionMC_Initialize(REPORT_INTERVAL, 1);
 
 	MotionMC_GetLibVersion(lib_version);
+	print(&huart1, (char*) lib_version);
+	print(&huart1, (char*) "\n");
+}
+
+void motionFX_init() {
+
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
+
+	// Initialization
+	char lib_version[VERSION_STR_LENG];
+	MFX_knobs_t Knobs;
+
+	// Check if statically allocated memory size is sufficient
+	// to store MotionFX algorithm state and resize if necessary
+	if (STATE_SIZE < MotionFX_GetStateSize())
+		Error_Handler();
+
+	// Sensor Fusion API initialization function
+	MotionFX_initialize((MFXState_t*) mfxstate);
+	MotionFX_getKnobs((MFXState_t*) mfxstate, &Knobs);
+	Knobs.acc_orientation[0] = 'n';
+	Knobs.acc_orientation[1] = 'w';
+	Knobs.acc_orientation[2] = 'u';
+
+	Knobs.gyro_orientation[0] = 'n';
+	Knobs.gyro_orientation[1] = 'w';
+	Knobs.gyro_orientation[2] = 'u';
+
+	Knobs.mag_orientation[0] = 'n';
+	Knobs.mag_orientation[1] = 'e';
+	Knobs.mag_orientation[2] = 'u';
+
+	Knobs.gbias_acc_th_sc = GBIAS_ACC_TH_SC;
+	Knobs.gbias_gyro_th_sc = GBIAS_GYRO_TH_SC;
+	Knobs.gbias_mag_th_sc = GBIAS_MAG_TH_SC;
+
+	Knobs.output_type = MFX_ENGINE_OUTPUT_ENU; // east, north, up coordinates
+	Knobs.LMode = 1; // 1-static learning, 2-dynamic learning
+	Knobs.modx = DECIMATION;
+	MotionFX_setKnobs((MFXState_t*) mfxstate, &Knobs);
+
+	// Enable 9-axis sensor fusion (ACC + GYRO + MAG)
+	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_DISABLE);
+
+	// Enable magnetometer calibration
+	MotionFX_MagCal_init(1000U / CAL_FREQ, 1);
+
+	// Get version
+	MotionFX_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
 }
@@ -404,10 +468,126 @@ void motionMC_calibrate(bool print_values) {
 
 		print(&huart1, (char*) "data_out.CalQuality: ", data_out->CalQuality);
 		print(&huart1, (char*) (char*) "TimeStamp (ms): ", data_in->TimeStamp);
-
-		free(data_in);
-		free(data_out);
 	}
+
+	free(data_in);
+	free(data_out);
+}
+
+bool motionFX_calibrate(bool print_values) {
+
+	float mag_x_mG, mag_y_mG, mag_z_mG;
+
+	// Read magnetometer X/Y/Z values in mGauss
+	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
+
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	float delta_time = time_stamp_uint64 / 1000;
+	prevTick = currTick;
+
+	MFX_MagCal_input_t mag_data_in;
+	mag_data_in.mag[0] = mag_x_mG * FROM_MGAUSS_TO_UT50;
+	mag_data_in.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
+	mag_data_in.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
+	mag_data_in.time_stamp = time_stamp_uint64;
+	MotionFX_MagCal_run(&mag_data_in);
+
+	// Test if calibration data are available
+	MFX_MagCal_output_t mag_cal_test;
+	MotionFX_MagCal_getParams(&mag_cal_test);
+
+	if (mag_cal_test.cal_quality == MFX_MAGCALGOOD) {
+
+		float acc_x_mg, acc_y_mg, acc_z_mg;
+		float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
+		MFX_input_t data_in;
+		MFX_output_t data_out;
+
+		// Read acceleration X/Y/Z values in mg
+		MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
+
+		// Get angular rate X/Y/Z in mdps
+		MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
+
+		// Convert acceleration from [mg] to [g]
+		data_in.acc[0] = (float) acc_x_mg / 1000.0f;
+		data_in.acc[1] = (float) acc_y_mg / 1000.0f;
+		data_in.acc[2] = (float) acc_z_mg / 1000.0f;
+
+		// Convert angular velocity from [mdps] to [dps]
+		data_in.gyro[0] = (float) gyr_x_mpds / 1000.0f;
+		data_in.gyro[1] = (float) gyr_y_mpds / 1000.0f;
+		data_in.gyro[2] = (float) gyr_z_mpds / 1000.0f;
+
+		// Convert magnetic field intensity from [mGauss] to [uT / 50]
+		data_in.mag[0] = mag_data_in.mag[0];
+		data_in.mag[1] = mag_data_in.mag[1];
+		data_in.mag[2] = mag_data_in.mag[2];
+
+		// Run Sensor Fusion algorithm
+		// propagate: estimates the orientation in 3D space by giving more weight to gyroscope data
+		// update: adjusts the predicted value by giving more weight to accelerometer and magnetometer data
+		MotionFX_propagate((MFXState_t*) mfxstate, &data_out, &data_in,
+				&delta_time);
+		MotionFX_update((MFXState_t*) mfxstate, &data_out, &data_in,
+				&delta_time,
+				NULL);
+
+		if (print_values) {
+
+			// Bias
+			print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
+					(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
+					(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
+					(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_quality: ",
+					mag_cal_test.cal_quality);
+
+			// Quaternion
+			print(&huart1, (char*) "quaternion[0]: ", data_out.quaternion[0]);
+			print(&huart1, (char*) "quaternion[1]: ", data_out.quaternion[1]);
+			print(&huart1, (char*) "quaternion[2]: ", data_out.quaternion[2]);
+			print(&huart1, (char*) "quaternion[3]: ", data_out.quaternion[3]);
+
+			// Rotation
+			print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]);
+			print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]);
+			print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]);
+
+			// Gravity
+			print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
+			print(&huart1, (char*) "gravity.y: ", data_out.gravity[1]);
+			print(&huart1, (char*) "gravity.z: ", data_out.gravity[2]);
+
+			// Linear acceleration
+			print(&huart1, (char*) "acc.x: ",
+					data_out.linear_acceleration[0]);
+			print(&huart1, (char*) "acc.y: ",
+					data_out.linear_acceleration[1]);
+			print(&huart1, (char*) "acc.z: ",
+					data_out.linear_acceleration[2]);
+
+			// Heading and headingErr
+			print(&huart1, (char*) "heading: ", data_out.heading);
+			print(&huart1, (char*) "headingErr: ", data_out.headingErr);
+
+			// TimeStamp
+			print(&huart1, (char *)"time_stamp: ", (int) time_stamp_uint64);
+		}
+
+	} else {
+
+		if (print_values) {
+			print(&huart1, (char*) "mag_cal_quality: ", mag_cal_test.cal_quality);
+		}
+
+		return false;
+	}
+
+	return true;
 }
 
 // Convertion functions
