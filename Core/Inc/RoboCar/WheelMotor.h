@@ -41,8 +41,8 @@
 #define LEFT_ENCODER_PIN GPIO_PIN_14
 #define LEFT_ENCODER_PORT GPIOE
 
-#define RIGHT_ENCODER_PIN GPIO_PIN_8
-#define RIGHT_ENCODER_PORT GPIOD
+#define RIGHT_ENCODER_PIN GPIO_PIN_13
+#define RIGHT_ENCODER_PORT GPIOE
 
 // UART communication handler
 extern UART_HandleTypeDef huart1;
@@ -110,12 +110,15 @@ namespace RoboCar {
 		void stop();
 
 		// Functions related to the speed regulation
-		bool setSpeed(int speed);
+		float getMinSpeed();
+		float getMaxSpeed();
+		bool setSpeed(float speed);
 		float getCurrentSpeed();
 		void updateSpeed(int referenceSpeed, int currentSpeed);
 
 		// Calibration functions
 		void calibrate();
+		void loadCalibration(std::vector<std::pair<int, float>> *speeds);
 		void showCalibrationValues();
 
 	private:

@@ -74,13 +74,13 @@ namespace RoboCar {
 		HAL_TIM_PWM_Start(&this->speedPin->htim, this->speedPin->channel);
 
 		// Default speed
-		this->pulse = 200;
+		this->pulse = 0;
 		this->speedPin->htim.Instance->CCR1 = this->pulse;
 
 		// General paramaters initialization
 		moving = false;
 		calibrated = 0;
-		minSpeed = 0;
+		minSpeed = 9999999;
 		maxSpeed = 0;
 		speeds = new std::vector<std::pair<int, float>>();
 	}
@@ -127,12 +127,26 @@ namespace RoboCar {
 		HAL_GPIO_WritePin(backwardPin->port, backwardPin->number, GPIO_PIN_RESET);
 	}
 
+	/*
+	 * @return Minimum speed from speeds vector
+	 */
+	float WheelMotor::getMinSpeed(){
+		return minSpeed;
+	}
+
+	/*
+	 * @return Maximum speed from speeds vector
+	 */
+	float WheelMotor::getMaxSpeed(){
+		return maxSpeed;
+	}
+
 	/**
 	 * @brief Updates wheel speed using the calibrations vector
 	 * @param speed Speed value to set. This value must be between minSpeed and maxSpeed
 	 * @return true if speed has been changed, false otherwise
 	 */
-	bool WheelMotor::setSpeed(int speed) {
+	bool WheelMotor::setSpeed(float speed) {
 		// The wheel must be calibrated
 		if (!calibrated) {
 			print(&huart1,
@@ -152,8 +166,9 @@ namespace RoboCar {
 
 		// Searching for the most suitable speed value
 		for (int i = 0; i < (int) speeds->size() - 1; i++) {
-			if (speeds->at(i).first <= speed && speeds->at(i + 1).second >= speed) {
+			if (speeds->at(i).second <= speed && speeds->at(i + 1).second >= speed) {
 				setPulse(speeds->at(i).first);
+				print(&huart1, (char *)"Setting pulse to ", speeds->at(i).first);
 				return true;
 			}
 		}
@@ -219,6 +234,7 @@ namespace RoboCar {
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 
+		print(&huart1, (char *)"Setting pulse to ", pulse);
 		setPulse(pulse);
 	}
 
@@ -226,8 +242,6 @@ namespace RoboCar {
 	 * @brief Start a calibration process. The wheel begins to accelerate.
 	 */
 	void WheelMotor::calibrate() {
-
-		print(&huart1, (char *)"Starting calibration...\n");
 
 		// Parameters initialization
 		speeds->clear();
@@ -241,7 +255,7 @@ namespace RoboCar {
 
 		// Calibrates for 10 different pulses
 		goForward();
-		for (int pulse = 0; pulse <= PERIOD; pulse += 100) {
+		for (int pulse = 0; pulse <= PERIOD; pulse += 50) {
 			// Set incremented pulse
 			setPulse(pulse);
 			tx_thread_sleep(100); // 2 seconds
@@ -263,7 +277,6 @@ namespace RoboCar {
 				free(par);
 				minSpeed = std::min(minSpeed, speed);
 				maxSpeed = std::max(maxSpeed, speed);
-
 			}
 		}
 
@@ -273,11 +286,25 @@ namespace RoboCar {
 	}
 
 	/*
+	 * Loads pulse-speed pairs from an external vector
+	 */
+	void WheelMotor::loadCalibration(std::vector<std::pair<int, float>> *speeds){
+		for (int i = 0; i < (int) speeds->size(); i++){
+			this->speeds->push_back({speeds->at(i).first, speeds->at(i).second});
+			if (speeds->at(i).second > maxSpeed){
+				maxSpeed = speeds->at(i).second;
+			}
+			if (speeds->at(i).second < minSpeed){
+				minSpeed = speeds->at(i).second;
+			}
+		}
+		calibrated = true;
+	}
+
+	/*
 	 * Print functions of vector's speeds
 	 */
 	void WheelMotor::showCalibrationValues() {
-		print(&huart1, (char*) "Pulse-Speed pairs:\n");
-
 		for (int i = 0; i < (int) speeds->size(); i++) {
 			print(&huart1, speeds->at(i).first); print(&huart1, (char*) " --- ", speeds->at(i).second);
 		}
