@@ -713,13 +713,9 @@ void motionEC_calibrate(bool print_values) {
 	}
 
 	if (print_values) {
-		/*
 		print(&huart1, (char*) "euler[0]: ", yaw);
 		print(&huart1, (char*) "euler[1]: ", pitch);
 		print(&huart1, (char*) "euler[2]: ", roll);
-		*/
-		//TODO: Mover este cálculo a MotionEC_GC
-		print(&huart1, (char*) "Degrees_180: ", (float) (180.0 / (max_ec - min_ec) * (yaw - min_ec)));
 	}
 }
 
