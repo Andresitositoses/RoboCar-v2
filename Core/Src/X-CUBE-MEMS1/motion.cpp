@@ -15,6 +15,15 @@
 #include "X-CUBE-MEMS1/motion_ac2.h"
 #include "X-CUBE-MEMS1/motion_mc.h"
 #include "X-CUBE-MEMS1/motion_fx.h"
+#include "X-CUBE-MEMS1/motion_ec.h"
+
+#define SHOW_BIAS 0
+#define SHOW_QUAT 0
+#define SHOW_GRAV 0
+#define SHOW_ACC  0
+#define SHOW_ROT  0
+#define SHOW_HEAD 0
+#define SHOW_TIME 0
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
@@ -55,6 +64,9 @@ uint32_t prevTick, currTick;
 
 void motionAC_init() {
 
+	__CRC_CLK_ENABLE()
+	;
+
 	prevTick = HAL_GetTick();
 	currTick = prevTick;
 
@@ -77,6 +89,9 @@ void motionAC_init() {
 }
 
 void motionAC2_init() {
+
+	__CRC_CLK_ENABLE()
+	;
 
 	float sample_frequency = SAMPLE_FREQUENCY;
 	prevTick = HAL_GetTick();
@@ -103,8 +118,6 @@ void motionAC2_init() {
 void motionGC_init() {
 
 	float sample_frequency = SAMPLE_FREQUENCY;
-	prevTick = HAL_GetTick();
-	currTick = prevTick;
 
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
@@ -127,6 +140,9 @@ void motionGC_init() {
 
 void motionMC_init() {
 
+	__CRC_CLK_ENABLE()
+	;
+
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
 
@@ -138,6 +154,9 @@ void motionMC_init() {
 }
 
 void motionFX_init() {
+
+	__CRC_CLK_ENABLE()
+	;
 
 	prevTick = HAL_GetTick();
 	currTick = prevTick;
@@ -154,6 +173,7 @@ void motionFX_init() {
 	// Sensor Fusion API initialization function
 	MotionFX_initialize((MFXState_t*) mfxstate);
 	MotionFX_getKnobs((MFXState_t*) mfxstate, &Knobs);
+
 	Knobs.acc_orientation[0] = 'n';
 	Knobs.acc_orientation[1] = 'w';
 	Knobs.acc_orientation[2] = 'u';
@@ -176,7 +196,7 @@ void motionFX_init() {
 	MotionFX_setKnobs((MFXState_t*) mfxstate, &Knobs);
 
 	// Enable 9-axis sensor fusion (ACC + GYRO + MAG)
-	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_DISABLE);
+	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_ENABLE);
 
 	// Enable magnetometer calibration
 	MotionFX_MagCal_init(1000U / CAL_FREQ, 1);
@@ -526,7 +546,7 @@ bool motionFX_calibrate(bool print_values) {
 	mag_data_in.time_stamp = time_stamp_uint64;
 	MotionFX_MagCal_run(&mag_data_in);
 
-	// Test if calibration data are available
+	// Test if calibration data are available and get bias values
 	MFX_MagCal_output_t mag_cal_test;
 	MotionFX_MagCal_getParams(&mag_cal_test);
 
@@ -553,10 +573,10 @@ bool motionFX_calibrate(bool print_values) {
 		data_in.gyro[1] = (float) gyr_y_mpds / 1000.0f;
 		data_in.gyro[2] = (float) gyr_z_mpds / 1000.0f;
 
-		// Convert magnetic field intensity from [mGauss] to [uT / 50]
-		data_in.mag[0] = mag_data_in.mag[0];
-		data_in.mag[1] = mag_data_in.mag[1];
-		data_in.mag[2] = mag_data_in.mag[2];
+		// Apply calibration results [uT/50]
+		data_in.mag[0] = mag_data_in.mag[0] - mag_cal_test.hi_bias[0];
+		data_in.mag[1] = mag_data_in.mag[1] - mag_cal_test.hi_bias[1];
+		data_in.mag[2] = mag_data_in.mag[2] - mag_cal_test.hi_bias[2];
 
 		// Run Sensor Fusion algorithm
 		// propagate: estimates the orientation in 3D space by giving more weight to gyroscope data
@@ -570,51 +590,70 @@ bool motionFX_calibrate(bool print_values) {
 		if (print_values) {
 
 			// Bias
-			print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
-					(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
-					(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
-					(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_quality: ",
-					mag_cal_test.cal_quality);
+			if (SHOW_BIAS) {
+				print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
+						(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
+				print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
+						(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
+				print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
+						(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
+				print(&huart1, (char*) "mag_cal_quality: ",
+						mag_cal_test.cal_quality);
+			}
 
 			// Quaternion
-			print(&huart1, (char*) "quaternion[0]: ", data_out.quaternion[0]);
-			print(&huart1, (char*) "quaternion[1]: ", data_out.quaternion[1]);
-			print(&huart1, (char*) "quaternion[2]: ", data_out.quaternion[2]);
-			print(&huart1, (char*) "quaternion[3]: ", data_out.quaternion[3]);
+			if (SHOW_QUAT) {
+				print(&huart1, (char*) "quaternion[0]: ",
+						data_out.quaternion[0]);
+				print(&huart1, (char*) "quaternion[1]: ",
+						data_out.quaternion[1]);
+				print(&huart1, (char*) "quaternion[2]: ",
+						data_out.quaternion[2]);
+				print(&huart1, (char*) "quaternion[3]: ",
+						data_out.quaternion[3]);
+			}
 
 			// Rotation
-			print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]);
-			print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]);
-			print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]);
+			if (SHOW_ROT) {
+				print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]); // yaw
+				print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]); // pitch
+				print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]); // roll
+			}
 
 			// Gravity
-			print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
-			print(&huart1, (char*) "gravity.y: ", data_out.gravity[1]);
-			print(&huart1, (char*) "gravity.z: ", data_out.gravity[2]);
+			if (SHOW_GRAV) {
+				print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
+				print(&huart1, (char*) "gravity.y: ", data_out.gravity[1]);
+				print(&huart1, (char*) "gravity.z: ", data_out.gravity[2]);
+			}
 
 			// Linear acceleration
-			print(&huart1, (char*) "acc.x: ",
-					data_out.linear_acceleration[0]);
-			print(&huart1, (char*) "acc.y: ",
-					data_out.linear_acceleration[1]);
-			print(&huart1, (char*) "acc.z: ",
-					data_out.linear_acceleration[2]);
+			if (SHOW_ACC) {
+				print(&huart1, (char*) "acc.x: ",
+						data_out.linear_acceleration[0]);
+				print(&huart1, (char*) "acc.y: ",
+						data_out.linear_acceleration[1]);
+				print(&huart1, (char*) "acc.z: ",
+						data_out.linear_acceleration[2]);
+			}
 
 			// Heading and headingErr
-			print(&huart1, (char*) "heading: ", data_out.heading);
-			print(&huart1, (char*) "headingErr: ", data_out.headingErr);
+			if (SHOW_HEAD) {
+				print(&huart1, (char*) "heading: ", data_out.heading);
+				print(&huart1, (char*) "headingErr: ", data_out.headingErr);
+			}
 
 			// TimeStamp
-			print(&huart1, (char *)"time_stamp: ", (int) time_stamp_uint64);
+			if (SHOW_TIME) {
+				print(&huart1, (char*) "time_stamp: ", (int) time_stamp_uint64);
+			}
 		}
 
 	} else {
 
 		if (print_values) {
-			print(&huart1, (char*) "mag_cal_quality: ", mag_cal_test.cal_quality);
+			print(&huart1, (char*) "mag_cal_quality: ",
+					mag_cal_test.cal_quality);
 		}
 
 		return false;
