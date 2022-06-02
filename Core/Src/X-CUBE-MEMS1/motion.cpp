@@ -36,12 +36,18 @@ static uint8_t mfxstate[STATE_SIZE ];
 #define GBIAS_MAG_TH_SC                 (2.0f*0.001500f)
 #define DECIMATION                      1U
 
+// For MotionEC
+float min_ec = 110;
+float max_ec = 134;
+float diff_ec;
+
 // Handlers
 extern UART_HandleTypeDef huart1;
 
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 float mag_cal_x, mag_cal_y, mag_cal_z;
+float yaw, pitch, roll;
 uint64_t time_stamp_uint64 = 0;
 uint32_t prevTick, currTick;
 
@@ -179,6 +185,33 @@ void motionFX_init() {
 	MotionFX_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
+}
+
+void motionEC_init() {
+
+	__CRC_CLK_ENABLE()
+	;
+
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
+
+	// Initialization
+	char lib_version[VERSION_STR_LENG];
+	float freq = ALGO_FREQ;
+
+	// Accelerometer calibration API initialization function
+	MotionEC_Initialize(MEC_MCU_STM32, &freq);
+
+	MotionEC_SetOrientationEnable(MEC_ENABLE);
+	MotionEC_SetVirtualGyroEnable(MEC_ENABLE);
+	MotionEC_SetGravityEnable(MEC_ENABLE);
+	MotionEC_SetLinearAccEnable(MEC_ENABLE);
+
+	// Get version
+	MotionEC_GetLibVersion(lib_version);
+	print(&huart1, (char*) lib_version);
+	print(&huart1, (char*) "\n");
+
 }
 
 // Calibration functions
@@ -588,6 +621,67 @@ bool motionFX_calibrate(bool print_values) {
 	}
 
 	return true;
+}
+
+void motionEC_calibrate(bool print_values) {
+
+	float acc_x_mg, acc_y_mg, acc_z_mg;
+	float mag_x_mG, mag_y_mG, mag_z_mG;
+	MEC_input_t data_in;
+	MEC_output_t data_out;
+
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	float delta_time = time_stamp_uint64 / 1000;
+	prevTick = currTick;
+
+	// Read acceleration X/Y/Z values in mg
+	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
+
+	// Read magnetometer X/Y/Z values in mGauss
+	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
+
+	// Convert acceleration from [mg] to [g]
+	data_in.acc[0] = (float) acc_x_mg / 1000.0f;
+	data_in.acc[1] = (float) acc_y_mg / 1000.0f;
+	data_in.acc[2] = (float) acc_z_mg / 1000.0f;
+
+	// Magnetometer data in [uT/50]
+	data_in.mag[0] = mag_x_mG * FROM_MGAUSS_TO_UT50;
+	data_in.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
+	data_in.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
+
+	data_in.deltatime_s = delta_time;
+
+	MotionEC_Run(&data_in, &data_out);
+
+	yaw = data_out.euler[0];
+	pitch = data_out.euler[1];
+	roll = data_out.euler[2];
+
+	if (yaw < min_ec) {
+		min_ec = yaw;
+		diff_ec = max_ec - min_ec;
+		if (diff_ec > 24.0) {
+			max_ec = min_ec + 24.0;
+		}
+	} else if (yaw > max_ec) {
+		max_ec = yaw;
+		diff_ec = max_ec - min_ec;
+		if (diff_ec > 24.0) {
+			min_ec = max_ec - 24.0;
+		}
+	}
+
+	if (print_values) {
+		/*
+		print(&huart1, (char*) "euler[0]: ", yaw);
+		print(&huart1, (char*) "euler[1]: ", pitch);
+		print(&huart1, (char*) "euler[2]: ", roll);
+		*/
+		//TODO: Mover este cálculo a MotionEC_GC
+		print(&huart1, (char*) "Degrees_180: ", (float) (180.0 / (max_ec - min_ec) * (yaw - min_ec)));
+	}
 }
 
 // Convertion functions

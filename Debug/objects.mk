@@ -5,5 +5,5 @@
 
 USER_OBJS :=
 
-LIBS := -lMotionAC_CM33F_wc32_ot_hard -lMotionAC2_CM33F_wc32_ot_hard -lMotionMC_CM33F_wc32_ot_hard -lMotionGC_CM33F_wc32_ot_hard -lMotionFX_CM33F_wc32_ot_hard
+LIBS := -lMotionAC_CM33F_wc32_ot_hard -lMotionEC_CM33F_wc32_ot_hard -lMotionAC2_CM33F_wc32_ot_hard -lMotionMC_CM33F_wc32_ot_hard -lMotionGC_CM33F_wc32_ot_hard -lMotionFX_CM33F_wc32_ot_hard
 

@@ -89,6 +89,7 @@
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.linker.option.script.125125110" name="Linker Script (-T)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.linker.option.script" useByScannerDiscovery="false" value="${workspace_loc:/${ProjName}/STM32U585AIIXQ_FLASH.ld}" valueType="string"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.linker.option.libraries.1175522318" name="Libraries (-l)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.linker.option.libraries" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="MotionAC_CM33F_wc32_ot_hard"/>
+									<listOptionValue builtIn="false" value="MotionEC_CM33F_wc32_ot_hard"/>
 									<listOptionValue builtIn="false" value="MotionAC2_CM33F_wc32_ot_hard"/>
 									<listOptionValue builtIn="false" value="MotionMC_CM33F_wc32_ot_hard"/>
 									<listOptionValue builtIn="false" value="MotionGC_CM33F_wc32_ot_hard"/>
