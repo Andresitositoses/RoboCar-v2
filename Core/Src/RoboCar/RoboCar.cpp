@@ -43,15 +43,15 @@ namespace RoboCar {
 		moving = true;
 	}
 
-	void RoboCar::rotateRight(){
-		leftWheel->goForward();
-		rightWheel->goBackward();
-		moving = true;
-	}
-
 	void RoboCar::rotateLeft(){
 		leftWheel->goBackward();
 		rightWheel->goForward();
+		moving = true;
+	}
+
+	void RoboCar::rotateRight(){
+		leftWheel->goForward();
+		rightWheel->goBackward();
 		moving = true;
 	}
 
@@ -104,7 +104,8 @@ namespace RoboCar {
 	void RoboCar::updateSpeed(){
 		float leftSpeed = leftWheel->getCurrentSpeed();
 		float rightSpeed = rightWheel->getCurrentSpeed();
-		leftWheel->updateSpeed(speed, leftSpeed);
+		print(&huart1, (char*)"speed: ", speed);
+		leftWheel->updateSpeed(speed+2, leftSpeed);
 		rightWheel->updateSpeed(speed, rightSpeed);
 	}
 
