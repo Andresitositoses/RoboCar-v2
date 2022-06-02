@@ -40,6 +40,7 @@ Core/Src/BSP \
 Core/Src/BSP/env_sensors \
 Core/Src/BSP/motion_sensors \
 Core/Src/RoboCar \
+Core/Src/X-CUBE-MEMS1 \
 Core/Src \
 Core/Startup \
 Drivers/STM32U5xx_HAL_Driver/Src \

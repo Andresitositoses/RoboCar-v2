@@ -23,7 +23,8 @@
 #include "main.h"
 #include "print.h"
 #include "sensors.h"
-
+#include "RoboCar/RoboCar.h"
+#include "X-CUBE-MEMS1/motion.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -37,9 +38,14 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 // Stacks sizes
-#define MAINTHREAD_STACK_SIZE 2048
-#define ENCODERS_STACK_SIZE 1024
-#define SENSORS_STACK_SIZE 1024
+#define MAINTHREAD_STACK_SIZE 4096
+#define ENCODERS_STACK_SIZE 2048
+#define SENSORS_STACK_SIZE 4096
+
+// Kalman filtering values
+#define CALIBRATION_FREQUENCY 25.0f
+#define SAMPLE_FREQUENCY	100.0f
+extern float acc_cal_x, acc_cal_y, acc_cal_z;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,7 +58,6 @@
 
 // Handlers
 extern UART_HandleTypeDef huart1;
-
 /////////////////////////
 /// THREAD VARIABLES ////
 /////////////////////////
@@ -60,7 +65,7 @@ extern UART_HandleTypeDef huart1;
 // Main thread
 uint8_t mainThread_stack[MAINTHREAD_STACK_SIZE];
 TX_THREAD mainThread_ptr;
-int moving = 0;
+RoboCar::RoboCar *coche;
 
 // Encoder thread
 uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
@@ -92,6 +97,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 
 	/* USER CODE BEGIN App_ThreadX_MEM_POOL */
 	(void) byte_pool;
+	coche = new RoboCar::RoboCar();
 	/* USER CODE END App_ThreadX_MEM_POOL */
 
 	/* USER CODE BEGIN App_ThreadX_Init */
@@ -101,8 +107,8 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
 			15, 15, 1, TX_AUTO_START);
 	tx_thread_create(&sensorsThread_ptr, (char* )"sensorsThread",
-				sensorsThread_entry, 0, sensorsThread_stack, SENSORS_STACK_SIZE,
-				15, 15, 1, TX_AUTO_START);
+			sensorsThread_entry, 0, sensorsThread_stack, SENSORS_STACK_SIZE, 15,
+			15, 1, TX_AUTO_START);
 	/* USER CODE END App_ThreadX_Init */
 
 	return ret;
@@ -129,10 +135,15 @@ void MX_ThreadX_Init(void) {
 
 // Main thread
 VOID mainThread_entry(ULONG initial_input) {
-	moving = 1;
+
+	coche->loadCalibration();
+	coche->showCalibrations();
+
+	int cont = 0;
 	while (1) {
 
-		HAL_GPIO_TogglePin(BLUE_LED_PORT, BLUE_LED_PIN);
+		cont++;
+		//print(&huart1, (char*) "Escribo, luego existo. ", cont);
 		tx_thread_sleep(100); // 1s
 	}
 }
@@ -141,13 +152,14 @@ VOID mainThread_entry(ULONG initial_input) {
 VOID encodersThread_entry(ULONG initial_input) {
 
 	while (1) {
-		// Speed calculation
-		if (moving) {
-			// Update wheels speeds
-			//TODO: corroborar buen funcionamiento antes de utilizar
+		// Speed control
+		if (coche->isMoving()) {
+			// Update car speed
+			//TODO: Pasar factor extra del magnetómetro como parámetro, indicando a qué rueda aplicárselo
+			coche->updateSpeed();
 		}
 
-		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+		HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
 		tx_thread_sleep(10); // 100 ms
 	}
 }
@@ -156,14 +168,32 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
+	motionFX_init();
 
-	print(&huart1, (char *)"Sensors initialized\n");
+	print(&huart1, (char*) "Sensors initialized\n");
 
-	while (1) {
-		showAccelGyroValues();
+	int delay = (int) (1000U / CALIBRATION_FREQUENCY);
+	delay /= 10; // ms to cs
+
+	while (!motionFX_calibrate(0)) {
+
+		print(&huart1, (char*) "Calibrando...\n");
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(1); // 10 ms
+		tx_thread_sleep(delay); // Calibration frequency -> 25 Hz
+	}
+
+	print(&huart1, (char*) "Calibración completada!\n");
+
+	delay = (int) (1000U / SAMPLE_FREQUENCY);
+	delay /= 10; // ms to cs
+
+	while (1) {
+
+		motionFX_calibrate(1);
+
+		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
+		tx_thread_sleep (delay); // Algorithm frequency -> 100 Hz
 	}
 }
 /* USER CODE END 1 */

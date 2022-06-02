@@ -8,12 +8,8 @@
 #include "sensors.h"
 #include "print.h"
 
-#define STATE_ACCEL 0
-#define STATE_GYRO 1
-
-int state = STATE_ACCEL;
-
 void initSensors() {
+
 	// LPS22HH module
 	BSP_ENV_SENSOR_Init(1, ENV_TEMPERATURE); // Temperature
 	BSP_ENV_SENSOR_Enable(1, ENV_TEMPERATURE);
@@ -22,40 +18,24 @@ void initSensors() {
 
 	// ISM330DLC module
 	BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO); // Accelerometer
+	BSP_MOTION_SENSOR_Init(0, MOTION_GYRO); // Gyroscope
 	BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
-	/* By default only the accelerometer is initialized */
+	BSP_MOTION_SENSOR_Enable(0, MOTION_GYRO);
 
 	// IIS2MDC module
 	BSP_MOTION_SENSOR_Init(1, MOTION_MAGNETO); // Magnetometer
 	BSP_MOTION_SENSOR_Enable(1, MOTION_MAGNETO);
+
+	HAL_Delay(100);
 }
 
 BSP_MOTION_SENSOR_Axes_t getAxesAccelerometer() {
-	if (state == STATE_GYRO) {
-		// Deshabilitar módulo
-		BSP_MOTION_SENSOR_DeInit(0);
-		// Habilitar acelerómetro
-		BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO);
-		BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
-		HAL_Delay(20);
-		state = STATE_ACCEL;
-	}
 	BSP_MOTION_SENSOR_Axes_t axes;
 	BSP_MOTION_SENSOR_GetAxes(0, MOTION_ACCELERO, &axes);
-	axes.z *= -1;
 	return axes;
 }
 
 BSP_MOTION_SENSOR_Axes_t getAxesGyroscope() {
-	if (state == STATE_ACCEL) {
-		// Deshabilitar módulo
-		BSP_MOTION_SENSOR_DeInit(0);
-		// Habilitar acelerómetro
-		BSP_MOTION_SENSOR_Init(0, MOTION_GYRO);
-		BSP_MOTION_SENSOR_Enable(0, MOTION_GYRO);
-		HAL_Delay(100);
-		state = STATE_GYRO;
-	}
 	BSP_MOTION_SENSOR_Axes_t axes;
 	BSP_MOTION_SENSOR_GetAxes(0, MOTION_GYRO, &axes);
 	return axes;
@@ -69,37 +49,79 @@ BSP_MOTION_SENSOR_Axes_t getAxesMagnetometer() {
 
 void showAccelerometerValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesAcel.x);
-	print(&huart1, (int)ejesAcel.y);
-	print(&huart1, (char *)"", (int)ejesAcel.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesAcel.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesAcel.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesAcel.z);
 }
 
 void showGyroscopeValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesGiro = getAxesGyroscope();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesGiro.x);
-	print(&huart1, (int)ejesGiro.y);
-	print(&huart1, (char *)"", (int)ejesGiro.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesGiro.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesGiro.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesGiro.z);
 }
 
 void showAccelGyroValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
 	BSP_MOTION_SENSOR_Axes_t ejesGiro = getAxesGyroscope();
-	print(&huart1, (char *)"accelX="); print(&huart1, (int)ejesAcel.x);
-	print(&huart1, (char *)", accelY="); print(&huart1, (int)ejesAcel.y);
-	print(&huart1, (char *)", accelZ="); print(&huart1, (int)ejesAcel.z);
-	print(&huart1, (char *)" ----- ");
-	print(&huart1, (char *)"gyroX="); print(&huart1, (int)ejesGiro.x);
-	print(&huart1, (char *)", gyroY="); print(&huart1, (int)ejesGiro.y);
-	print(&huart1, (char *)", gyroZ="); print(&huart1, (char *)"", (int)ejesGiro.z);
+	print(&huart1, (char*) "accelX=");
+	print(&huart1, (int) ejesAcel.x);
+	print(&huart1, (char*) ", accelY=");
+	print(&huart1, (int) ejesAcel.y);
+	print(&huart1, (char*) ", accelZ=");
+	print(&huart1, (int) ejesAcel.z);
+	print(&huart1, (char*) " ----- ");
+	print(&huart1, (char*) "gyroX=");
+	print(&huart1, (int) ejesGiro.x);
+	print(&huart1, (char*) ", gyroY=");
+	print(&huart1, (int) ejesGiro.y);
+	print(&huart1, (char*) ", gyroZ=");
+	print(&huart1, (char*) "", (int) ejesGiro.z);
 }
 
 void showMagnetometerValues() {
 	BSP_MOTION_SENSOR_Axes_t ejesMagn = getAxesMagnetometer();
-	print(&huart1, (char *)"x, y, z: ");
-	print(&huart1, (int)ejesMagn.x);
-	print(&huart1, (int)ejesMagn.y);
-	print(&huart1, (char *)"", (int)ejesMagn.z);
+	print(&huart1, (char*) "x, y, z: ");
+	print(&huart1, (int) ejesMagn.x);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (int) ejesMagn.y);
+	print(&huart1, (char*) ", ");
+	print(&huart1, (char*) "", (int) ejesMagn.z);
+}
+
+/*
+ * MEMS functions
+ */
+void MEMS_Read_AccValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
+}
+
+void MEMS_Read_Acc2Value(float *data_x, float *data_y) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesAccelerometer();
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+}
+
+void MEMS_Read_GyroValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesGyroscope();
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
+}
+
+void MEMS_Read_MagValue(float *data_x, float *data_y, float *data_z) {
+	BSP_MOTION_SENSOR_Axes_t ejesAcel = getAxesMagnetometer();
+	*data_x = (float) ejesAcel.x;
+	*data_y = (float) ejesAcel.y;
+	*data_z = (float) ejesAcel.z;
 }
 
