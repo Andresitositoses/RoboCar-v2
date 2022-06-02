@@ -33,6 +33,8 @@ namespace RoboCar {
 
 		void goForward();
 		void goBackward();
+		void rotateRight();
+		void rotateLeft();
 		void stop();
 
 		void setSpeed(float speed);
