@@ -12,6 +12,7 @@
 "./Core/Src/BSP/motion_sensors/b_u585i_iot02a_motion_sensors.o"
 "./Core/Src/RoboCar/RoboCar.o"
 "./Core/Src/RoboCar/WheelMotor.o"
+"./Core/Src/X-CUBE-MEMS1/motion.o"
 "./Core/Src/app_threadx.o"
 "./Core/Src/main.o"
 "./Core/Src/print.o"

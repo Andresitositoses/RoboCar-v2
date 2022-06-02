@@ -61,12 +61,9 @@ void MX_ThreadX_Init(void);
 /* USER CODE BEGIN PD */
 
 // LEDs
-// For main thread
+// For encoders thread
 #define GREEN_LED_PIN GPIO_PIN_7
 #define GREEN_LED_PORT GPIOH
-// For encoders thread
-#define BLUE_LED_PIN GPIO_PIN_13
-#define BLUE_LED_PORT GPIOE
 // For sensors thread
 #define RED_LED_PIN GPIO_PIN_6
 #define RED_LED_PORT GPIOH
