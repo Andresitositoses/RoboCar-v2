@@ -5,12 +5,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../Core/Src/RoboCar/RoboCar.cpp \
 ../Core/Src/RoboCar/WheelMotor.cpp 
 
 OBJS += \
+./Core/Src/RoboCar/RoboCar.o \
 ./Core/Src/RoboCar/WheelMotor.o 
 
 CPP_DEPS += \
+./Core/Src/RoboCar/RoboCar.d \
 ./Core/Src/RoboCar/WheelMotor.d 
 
 
@@ -21,7 +24,7 @@ Core/Src/RoboCar/%.o Core/Src/RoboCar/%.su: ../Core/Src/RoboCar/%.cpp Core/Src/R
 clean: clean-Core-2f-Src-2f-RoboCar
 
 clean-Core-2f-Src-2f-RoboCar:
-	-$(RM) ./Core/Src/RoboCar/WheelMotor.d ./Core/Src/RoboCar/WheelMotor.o ./Core/Src/RoboCar/WheelMotor.su
+	-$(RM) ./Core/Src/RoboCar/RoboCar.d ./Core/Src/RoboCar/RoboCar.o ./Core/Src/RoboCar/RoboCar.su ./Core/Src/RoboCar/WheelMotor.d ./Core/Src/RoboCar/WheelMotor.o ./Core/Src/RoboCar/WheelMotor.su
 
 .PHONY: clean-Core-2f-Src-2f-RoboCar
 

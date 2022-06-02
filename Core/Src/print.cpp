@@ -35,14 +35,14 @@ void print(UART_HandleTypeDef *huart, int num) {
 void print(UART_HandleTypeDef *huart, char *str, float num) {
 	print(huart, str);
 	print(huart, num);
-	print(huart, "\n");
+	print(huart, (char *)"\n");
 }
 
 // Char * + Int
 void print(UART_HandleTypeDef *huart, char *str, int num) {
 	print(huart, str);
 	print(huart, num);
-	print(huart, "\n");
+	print(huart, (char *)"\n");
 }
 
 // Float + Char * + Float
@@ -50,7 +50,7 @@ void print(UART_HandleTypeDef *huart, float value1, char *str, float value2){
 	print(huart, value1);
 	print(huart, str);
 	print(huart, value2);
-	print(huart, "\n");
+	print(huart, (char *)"\n");
 }
 
 // Int + Char * + Int
@@ -58,5 +58,5 @@ void print(UART_HandleTypeDef *huart, int value1, char *str, int value2){
 	print(huart, value1);
 	print(huart, str);
 	print(huart, value2);
-	print(huart, "\n");
+	print(huart, (char *)"\n");
 }
