@@ -20,6 +20,7 @@ void initSensors();
 BSP_MOTION_SENSOR_Axes_t getAxesAccelerometer();
 BSP_MOTION_SENSOR_Axes_t getAxesGyroscope();
 BSP_MOTION_SENSOR_Axes_t getAxesMagnetometer();
+float getMagnetoAzimuth(float mag_x, float mag_y);
 
 void showAccelerometerValues();
 void showGyroscopeValues();

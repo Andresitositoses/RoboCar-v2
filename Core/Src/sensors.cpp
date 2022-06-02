@@ -95,6 +95,10 @@ void showMagnetometerValues() {
 	print(&huart1, (char*) "", (int) ejesMagn.z);
 }
 
+float getMagnetoAzimuth(float mag_x, float mag_y) {
+	return (float) atan2(mag_x, mag_y) * 180 / 3.141592;
+}
+
 /*
  * MEMS functions
  */
