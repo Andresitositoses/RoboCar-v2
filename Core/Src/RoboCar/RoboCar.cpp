@@ -43,6 +43,18 @@ namespace RoboCar {
 		moving = true;
 	}
 
+	void RoboCar::rotateRight(){
+		leftWheel->goForward();
+		rightWheel->goBackward();
+		moving = true;
+	}
+
+	void RoboCar::rotateLeft(){
+		leftWheel->goBackward();
+		rightWheel->goForward();
+		moving = true;
+	}
+
 	void RoboCar::stop(){
 		leftWheel->stop();
 		rightWheel->stop();
