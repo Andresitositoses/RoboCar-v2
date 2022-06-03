@@ -50,13 +50,15 @@ float min_ec = 110;
 float max_ec = 134;
 float diff_ec;
 
+// For MotionEC_GC
+float degrees;
+
 // Handlers
 extern UART_HandleTypeDef huart1;
 
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 float mag_cal_x, mag_cal_y, mag_cal_z;
-float yaw, pitch, roll;
 uint64_t time_stamp_uint64 = 0;
 uint32_t prevTick, currTick;
 
@@ -219,7 +221,7 @@ void motionEC_init() {
 	char lib_version[VERSION_STR_LENG];
 	float freq = ALGO_FREQ;
 
-	// Accelerometer calibration API initialization function
+	// eCompass calibration API initialization function
 	MotionEC_Initialize(MEC_MCU_STM32, &freq);
 
 	MotionEC_SetOrientationEnable(MEC_ENABLE);
@@ -231,7 +233,45 @@ void motionEC_init() {
 	MotionEC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
+}
 
+void motionEC_GC_init(){
+
+	__CRC_CLK_ENABLE()
+	;
+
+	prevTick = HAL_GetTick();
+	currTick = prevTick;
+
+	// Initialization
+	char lib_version_ec[VERSION_STR_LENG];
+	char lib_version_gc[VERSION_STR_LENG];
+	float freq_ec = ALGO_FREQ;
+	float freq_gc = SAMPLE_FREQUENCY;
+	MGC_knobs_t Knobs_gc;
+
+	// eCompass and Gyroscope calibrations API initialization functions
+	MotionEC_Initialize(MEC_MCU_STM32, &freq_ec);
+	MotionGC_Initialize(MGC_MCU_STM32, &freq_gc);
+
+	// Get current settings and set desired ones
+	MotionGC_GetKnobs(&Knobs_gc);
+	Knobs_gc.AccThr = 0.008f;
+	Knobs_gc.GyroThr = 0.15f;
+	MotionGC_SetKnobs(&Knobs_gc);
+
+	MotionEC_SetOrientationEnable(MEC_ENABLE);
+	MotionEC_SetVirtualGyroEnable(MEC_ENABLE);
+	MotionEC_SetGravityEnable(MEC_ENABLE);
+	MotionEC_SetLinearAccEnable(MEC_ENABLE);
+
+	// Get versions
+	MotionEC_GetLibVersion(lib_version_ec);
+	print(&huart1, (char*) lib_version_ec);
+	print(&huart1, (char*) "\n");
+	MotionGC_GetLibVersion(lib_version_gc);
+	print(&huart1, (char*) lib_version_gc);
+	print(&huart1, (char*) "\n");
 }
 
 // Calibration functions
@@ -694,9 +734,9 @@ void motionEC_calibrate(bool print_values) {
 
 	MotionEC_Run(&data_in, &data_out);
 
-	yaw = data_out.euler[0];
-	pitch = data_out.euler[1];
-	roll = data_out.euler[2];
+	float yaw = data_out.euler[0];
+	float pitch = data_out.euler[1];
+	float roll = data_out.euler[2];
 
 	if (yaw < min_ec) {
 		min_ec = yaw;
@@ -717,6 +757,124 @@ void motionEC_calibrate(bool print_values) {
 		print(&huart1, (char*) "euler[1]: ", pitch);
 		print(&huart1, (char*) "euler[2]: ", roll);
 	}
+}
+
+bool motionEC_GC_calibrate(bool print_values){
+
+	// Read accelerometer, gyroscope and magnetometer values
+	int bias_update = 0; // Just for MotionGC
+	float acc_x_mg, acc_y_mg, acc_z_mg;
+	float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
+	float mag_x_mG, mag_y_mG, mag_z_mG;
+	MEC_input_t data_in_ec;
+	MGC_input_t data_in_gc;
+	MEC_output_t data_out_ec;
+	MGC_output_t data_out_gc;
+
+	currTick = HAL_GetTick();
+	time_stamp_uint64 += currTick - prevTick;
+	float delta_time = time_stamp_uint64 / 1000;
+	prevTick = currTick;
+
+	// Get acceleration X/Y/Z in mg
+	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
+
+	// Get angular rate X/Y/Z in mdps
+	MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
+
+	// Read magnetometer X/Y/Z values in mGauss
+	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
+
+	// Convert acceleration from [mg] to [g]
+	acc_x_mg = acc_x_mg / 1000.0f;
+	acc_y_mg = acc_y_mg / 1000.0f;
+	acc_z_mg = acc_z_mg / 1000.0f;
+	data_in_ec.acc[0] = (float) acc_x_mg;
+	data_in_gc.Acc[0] = (float) acc_x_mg;
+	data_in_ec.acc[1] = (float) acc_y_mg;
+	data_in_gc.Acc[1] = (float) acc_y_mg;
+	data_in_ec.acc[2] = (float) acc_z_mg;
+	data_in_gc.Acc[2] = (float) acc_z_mg;
+
+	// Convert angular velocity from [mdps] to [dps]
+	data_in_gc.Gyro[0] = (float) gyr_x_mpds / 1000.0f;
+	data_in_gc.Gyro[1] = (float) gyr_y_mpds / 1000.0f;
+	data_in_gc.Gyro[2] = (float) gyr_z_mpds / 1000.0f;
+
+	// Magnetometer data in [uT/50]
+	data_in_ec.mag[0] = mag_x_mG * FROM_MGAUSS_TO_UT50;
+	data_in_ec.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
+	data_in_ec.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
+
+	data_in_ec.deltatime_s = delta_time;
+
+	// ECompass calibration algorithm update
+	MotionEC_Run(&data_in_ec, &data_out_ec);
+
+	float yaw = data_out_ec.euler[0];
+	float pitch = data_out_ec.euler[1];
+	float roll = data_out_ec.euler[2];
+
+	// Holds the difference between the highest and the lowest values
+	if (yaw < min_ec) {
+		min_ec = yaw;
+		diff_ec = max_ec - min_ec;
+		if (diff_ec > 24.0) {
+			max_ec = min_ec + 24.0;
+		}
+	} else if (yaw > max_ec) {
+		max_ec = yaw;
+		diff_ec = max_ec - min_ec;
+		if (diff_ec > 24.0) {
+			min_ec = max_ec - 24.0;
+		}
+	}
+
+	// Gyroscope calibration algorithm update
+	MotionGC_Update(&data_in_gc, &data_out_gc, &bias_update);
+
+	// Get Calibration coeficients
+	MotionGC_GetCalParams(&data_out_gc);
+
+	// Do offset & scale factor calibration (bias values [mdps])
+	gyr_cal_x = gyr_x_mpds - gyro_bias_to_mdps(data_out_gc.GyroBiasX);
+	gyr_cal_y = gyr_y_mpds - gyro_bias_to_mdps(data_out_gc.GyroBiasY);
+	gyr_cal_z = gyr_z_mpds - gyro_bias_to_mdps(data_out_gc.GyroBiasZ);
+
+	// Calculate orientation in degrees
+	degrees = (float) (180.0 / (max_ec - min_ec) * (yaw - min_ec));
+
+	if (print_values){
+
+		// Rotation values
+		print(&huart1, (char*) "euler[0]: ", yaw);
+		print(&huart1, (char*) "euler[1]: ", pitch);
+		print(&huart1, (char*) "euler[2]: ", roll);
+
+		// Bias values
+		print(&huart1, (char*) "data_out.GyroBiasX: ",
+				gyro_bias_to_mdps(data_out_gc.GyroBiasX));
+		print(&huart1, (char*) "data_out.GyroBiasY: ",
+				gyro_bias_to_mdps(data_out_gc.GyroBiasY));
+		print(&huart1, (char*) "data_out.GyroBiasZ: ",
+				gyro_bias_to_mdps(data_out_gc.GyroBiasZ));
+
+		// Data convertion
+		print(&huart1, (char*) "Gyr_x's value: ");
+		print(&huart1, gyr_x_mpds, (char*) " --> ", gyr_cal_x);
+		print(&huart1, (char*) "Gyr_y's value: ");
+		print(&huart1, gyr_y_mpds, (char*) " --> ", gyr_cal_y);
+		print(&huart1, (char*) "Gyr_z's value: ");
+		print(&huart1, gyr_z_mpds, (char*) " --> ", gyr_cal_z);
+
+		print(&huart1, (char*) "bias_update: ", bias_update);
+	}
+
+	return (bias_update != 0);
+}
+
+float motionEC_GC_getDegrees(){
+	return degrees;
 }
 
 // Convertion functions

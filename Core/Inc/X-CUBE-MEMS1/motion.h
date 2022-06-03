@@ -26,6 +26,10 @@ bool motionFX_calibrate(bool print);
 void motionEC_init();
 void motionEC_calibrate(bool print);
 
+void motionEC_GC_init();
+bool motionEC_GC_calibrate(bool print);
+float motionEC_GC_getDegrees();
+
 float acc_bias_to_mg(float acc_bias);
 float gyro_bias_to_mdps(float gyro_bias);
 float mag_val_to_mGauss(float mag_val_uT);
