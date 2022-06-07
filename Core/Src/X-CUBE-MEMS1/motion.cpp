@@ -17,27 +17,15 @@
 #include "X-CUBE-MEMS1/motion_fx.h"
 #include "X-CUBE-MEMS1/motion_ec.h"
 
-#define SHOW_BIAS 0
-#define SHOW_QUAT 0
-#define SHOW_GRAV 0
-#define SHOW_ACC  0
-#define SHOW_ROT  0
-#define SHOW_HEAD 0
-#define SHOW_TIME 0
-
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
 #define SAMPLE_FREQUENCY 		25.0f
-
-// For MotionAC
-#define DYNAMIC_CALIBRATION 	0
 
 // For MotionFX
 #define STATE_SIZE (size_t)(2450)
 static uint8_t mfxstate[STATE_SIZE ];
 #define CAL_FREQ  25U /* Algorithm frequency 25 Hz */
 #define ALGO_FREQ  100U /* Algorithm frequency 100 Hz */
-#define ENABLE_6X 0
 #define FROM_UT50_TO_MGAUSS  500.0f
 #define FROM_MGAUSS_TO_UT50  (0.1f/50.0f)
 #define GBIAS_ACC_TH_SC                 (2.0f*0.000765f)
@@ -60,7 +48,9 @@ uint64_t time_stamp_uint64 = 0;
 uint32_t prevTick, currTick;
 float degrees;
 
-// Init functions
+//////////////////////////////////////////////////////////////
+//////////////////// Motion init functions ///////////////////
+//////////////////////////////////////////////////////////////
 
 void motionAC_init() {
 
@@ -78,7 +68,7 @@ void motionAC_init() {
 	MotionAC_Initialize(1);
 	MotionAC_GetKnobs(&Knobs);
 	Knobs.MoveThresh_g = 0.2f;
-	Knobs.Run6PointCal = DYNAMIC_CALIBRATION;
+	Knobs.Run6PointCal = 0; // 0 -> DYNAMIC_CALIBRATION
 	Knobs.Sample_ms = REPORT_INTERVAL;
 	MotionAC_SetKnobs(&Knobs);
 
@@ -247,7 +237,9 @@ void motionEC_MC_init(){
 	motionEC_init();
 }
 
-// Calibration functions
+//////////////////////////////////////////////////////////////
+///////////// Motion calibration functions ///////////////////
+//////////////////////////////////////////////////////////////
 
 void motionAC_calibrate(bool print_values) {
 
@@ -606,63 +598,49 @@ bool motionFX_calibrate(bool print_values) {
 		if (print_values) {
 
 			// Bias
-			if (SHOW_BIAS) {
-				print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
-						(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
-				print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
-						(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
-				print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
-						(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
-				print(&huart1, (char*) "mag_cal_quality: ",
-						mag_cal_test.cal_quality);
-			}
+			print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
+					(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
+					(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
+					(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_cal_quality: ",
+					mag_cal_test.cal_quality);
 
 			// Quaternion
-			if (SHOW_QUAT) {
-				print(&huart1, (char*) "quaternion[0]: ",
-						data_out.quaternion[0]);
-				print(&huart1, (char*) "quaternion[1]: ",
-						data_out.quaternion[1]);
-				print(&huart1, (char*) "quaternion[2]: ",
-						data_out.quaternion[2]);
-				print(&huart1, (char*) "quaternion[3]: ",
-						data_out.quaternion[3]);
-			}
+			print(&huart1, (char*) "quaternion[0]: ",
+					data_out.quaternion[0]);
+			print(&huart1, (char*) "quaternion[1]: ",
+					data_out.quaternion[1]);
+			print(&huart1, (char*) "quaternion[2]: ",
+					data_out.quaternion[2]);
+			print(&huart1, (char*) "quaternion[3]: ",
+					data_out.quaternion[3]);
 
 			// Rotation
-			if (SHOW_ROT) {
-				print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]); // yaw
-				print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]); // pitch
-				print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]); // roll
-			}
+			print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]); // yaw
+			print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]); // pitch
+			print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]); // roll
 
 			// Gravity
-			if (SHOW_GRAV) {
-				print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
-				print(&huart1, (char*) "gravity.y: ", data_out.gravity[1]);
-				print(&huart1, (char*) "gravity.z: ", data_out.gravity[2]);
-			}
+			print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
+			print(&huart1, (char*) "gravity.y: ", data_out.gravity[1]);
+			print(&huart1, (char*) "gravity.z: ", data_out.gravity[2]);
 
 			// Linear acceleration
-			if (SHOW_ACC) {
-				print(&huart1, (char*) "acc.x: ",
-						data_out.linear_acceleration[0]);
-				print(&huart1, (char*) "acc.y: ",
-						data_out.linear_acceleration[1]);
-				print(&huart1, (char*) "acc.z: ",
-						data_out.linear_acceleration[2]);
-			}
+			print(&huart1, (char*) "acc.x: ",
+					data_out.linear_acceleration[0]);
+			print(&huart1, (char*) "acc.y: ",
+					data_out.linear_acceleration[1]);
+			print(&huart1, (char*) "acc.z: ",
+					data_out.linear_acceleration[2]);
 
 			// Heading and headingErr
-			if (SHOW_HEAD) {
-				print(&huart1, (char*) "heading: ", data_out.heading);
-				print(&huart1, (char*) "headingErr: ", data_out.headingErr);
-			}
+			print(&huart1, (char*) "heading: ", data_out.heading);
+			print(&huart1, (char*) "headingErr: ", data_out.headingErr);
 
 			// TimeStamp
-			if (SHOW_TIME) {
-				print(&huart1, (char*) "time_stamp: ", (int) time_stamp_uint64);
-			}
+			print(&huart1, (char*) "time_stamp: ", (int) time_stamp_uint64);
 		}
 
 	} else {
@@ -777,6 +755,11 @@ bool motionEC_MC_calibrate(bool print_values) {
 
 	return true;
 }
+
+//////////////////////////////////////////////////////////////
+//////////////////// Auxiliary functions /////////////////////
+//////////////////////////////////////////////////////////////
+
 void Acc_GetOrientation(char *Orientation)
 {
 	Orientation[0] = 'n';
@@ -927,7 +910,9 @@ void transform_orientation(float *input, float output[], float matrix[][3])
 	output[2] = matrix[2][0] * input[0]  +  matrix[2][1] * input[1]  +  matrix[2][2] * input[2];
 }
 
-// Convertion functions
+//////////////////////////////////////////////////////////////
+//////////////////// Convertion functions ////////////////////
+//////////////////////////////////////////////////////////////
 
 float acc_bias_to_mg(float acc_bias) {
 	float ans_float;
@@ -964,6 +949,11 @@ float mag_val_to_mGauss(float mag_val_uT) {
 		return mGauss_float;
 	}
 }
+
+//////////////////////////////////////////////////////////////
+/////////////////////////// Getters //////////////////////////
+//////////////////////////////////////////////////////////////
+
 float motion_getDegrees(){
 	return degrees;
 }

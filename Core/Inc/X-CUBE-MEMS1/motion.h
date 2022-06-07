@@ -8,6 +8,8 @@
 #ifndef INC_X_CUBE_MEMS1_MOTION_H_
 #define INC_X_CUBE_MEMS1_MOTION_H_
 
+/* Motion functions */
+
 void motionAC_init();
 void motionAC_calibrate(bool print);
 
@@ -29,6 +31,8 @@ void motionEC_calibrate(bool print);
 void motionEC_MC_init();
 bool motionEC_MC_calibrate(bool print);
 
+/* Auxiliary functions */
+
 void Acc_GetOrientation(char *Orientation);
 void Mag_GetOrientation(char *Orientation);
 void calc_matrix(char orientation[], float matrix[][3]);
@@ -39,9 +43,14 @@ int calc_heading(float *heading, float v_head[]);
 void MotionEC_manager_calc_heading(float quaternion[], float *heading, int *heading_valid);
 void transform_orientation(float *input, float output[], float matrix[][3]);
 
+/* Convertion functions */
+
 float acc_bias_to_mg(float acc_bias);
 float gyro_bias_to_mdps(float gyro_bias);
 float mag_val_to_mGauss(float mag_val_uT);
 
+/* Getters */
+
 float motion_getDegrees();
+
 #endif /* INC_X_CUBE_MEMS1_MOTION_H_ */
