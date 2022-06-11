@@ -234,7 +234,7 @@ namespace RoboCar {
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 
-		print(&huart1, (char *)"Setting pulse to ", pulse);
+		//print(&huart1, (char *)"Setting pulse to ", pulse);
 		setPulse(pulse);
 	}
 

@@ -105,7 +105,7 @@ namespace RoboCar {
 		float leftSpeed = leftWheel->getCurrentSpeed();
 		float rightSpeed = rightWheel->getCurrentSpeed();
 		print(&huart1, (char*)"speed: ", speed);
-		leftWheel->updateSpeed(speed+2, leftSpeed);
+		leftWheel->updateSpeed(speed, leftSpeed);
 		rightWheel->updateSpeed(speed, rightSpeed);
 	}
 
