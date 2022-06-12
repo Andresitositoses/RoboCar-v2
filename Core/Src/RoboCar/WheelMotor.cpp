@@ -229,7 +229,7 @@ namespace RoboCar {
 		if (!moving)
 			return;
 
-		int pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
+		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
 		pulse += pulse_change;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
