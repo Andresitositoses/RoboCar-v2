@@ -114,7 +114,7 @@ namespace RoboCar {
 		float getMaxSpeed();
 		bool setSpeed(float speed);
 		float getCurrentSpeed();
-		void updateSpeed(float referenceSpeed, float currentSpeed);
+		void updateSpeed(float referenceSpeed, float currentSpeed, float factorX);
 
 		// Calibration functions
 		void calibrate();

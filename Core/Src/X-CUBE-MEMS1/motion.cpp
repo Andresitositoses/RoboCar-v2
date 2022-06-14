@@ -15,6 +15,7 @@
 #include "X-CUBE-MEMS1/motion_ac2.h"
 #include "X-CUBE-MEMS1/motion_mc.h"
 #include "X-CUBE-MEMS1/motion_fx.h"
+#include "X-CUBE-MEMS1/motion_ec.h"
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
