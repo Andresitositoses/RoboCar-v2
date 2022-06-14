@@ -101,9 +101,14 @@ namespace RoboCar {
 		return maxSpeed;
 	}
 
-	void RoboCar::updateSpeed(float factorX){
+	void RoboCar::updateSpeed(){
 		float leftSpeed = leftWheel->getCurrentSpeed();
 		float rightSpeed = rightWheel->getCurrentSpeed();
+		leftWheel->updateSpeed(speed, leftSpeed);
+		rightWheel->updateSpeed(speed, rightSpeed);
+	}
+
+	void RoboCar::updateSpeed(float factorX){
 		leftWheel->updateSpeed(speed, leftSpeed, -factorX);
 		rightWheel->updateSpeed(speed, rightSpeed, factorX);
 	}

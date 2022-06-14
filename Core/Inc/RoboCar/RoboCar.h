@@ -44,6 +44,7 @@ namespace RoboCar {
 		float getSpeed();
 		float getMinSpeed();
 		float getMaxSpeed();
+		void updateSpeed();
 		void updateSpeed(float factorX);
 		bool isMoving();
 
