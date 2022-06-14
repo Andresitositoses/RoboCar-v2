@@ -139,7 +139,19 @@ VOID mainThread_entry(ULONG initial_input) {
 	coche->loadCalibration();
 	coche->showCalibrations();
 
-	int cont = 0;
+	while (!calibrated){
+		print(&huart1, (char*)"Calibrating...\n");
+		tx_thread_sleep(10); // 0.1s
+	}
+
+	print(&huart1, (char*)"Calibrado con éxito\n");
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
+	print(&huart1, (char*)"Push the botton to start.\n");
+
+	while (!HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
+		tx_thread_sleep(10); // 0.1s
+	}
 	while (1) {
 
 		cont++;
