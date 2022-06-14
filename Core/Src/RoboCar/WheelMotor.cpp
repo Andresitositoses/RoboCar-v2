@@ -246,7 +246,7 @@ namespace RoboCar {
 	}
 
 	void WheelMotor::updateSpeed(float factorX){
-		pulse += pulse_change;
+		pulse += factorX;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 		else if (pulse < 0){
