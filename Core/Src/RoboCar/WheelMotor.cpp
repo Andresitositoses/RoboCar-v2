@@ -233,6 +233,9 @@ namespace RoboCar {
 		pulse += pulse_change + factorX;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
+		else if (pulse < 0){
+			pulse = 0;
+		}
 		/*
 		print(&huart1, (char *)"Reference speed: ", referenceSpeed);
 		print(&huart1, (char *)"Current speed: ", currentSpeed);
