@@ -140,6 +140,9 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	coche->loadCalibration();
 	coche->showCalibrations();
+	print(&huart1, (char *)"Rango de velocidades: ");
+	print(&huart1, coche->getMinSpeed(), (char *)" --- ", coche->getMaxSpeed());
+	coche->setMinSpeed();
 
 	while (!calibrated){
 		print(&huart1, (char*)"Calibrating...\n");
@@ -154,10 +157,15 @@ VOID mainThread_entry(ULONG initial_input) {
 	while (!HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
 		tx_thread_sleep(10); // 0.1s
 	}
+
+	objective_dir = degrees;
+
+	print(&huart1, (char*)"Orientación actual: ", objective_dir);
+
 	while (1) {
 
-		cont++;
-		//print(&huart1, (char*) "Escribo, luego existo. ", cont);
+		coche->goForward();
+
 		tx_thread_sleep(100); // 1s
 	}
 }
