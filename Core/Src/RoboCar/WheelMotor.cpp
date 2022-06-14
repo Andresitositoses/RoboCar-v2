@@ -19,7 +19,7 @@
 #define PULSE_CONSTANT 				5
 
 // Measure parameters
-#define MEASURES_FOR_SPEED          6
+#define MEASURES_FOR_SPEED          4
 #define MAX_ATTEMPTS_TO_READ        450000
 #define CYCLES_PER_SECOND			160000000
 
@@ -225,12 +225,12 @@ namespace RoboCar {
 	 * @param referenceSpeed Reference speed on which to regulate the speed
 	 * @param currentSpeed Current wheel speed (determined by its corresponding encoder)
 	 */
-	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed) {
+	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed, float factorX) {
 		if (!moving)
 			return;
 
 		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
-		pulse += pulse_change;
+		pulse += pulse_change + factorX;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 		/*
