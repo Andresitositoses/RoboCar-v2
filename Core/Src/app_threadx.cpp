@@ -42,10 +42,12 @@
 #define ENCODERS_STACK_SIZE 2048
 #define SENSORS_STACK_SIZE 4096
 
-// Kalman filtering values
-#define CALIBRATION_FREQUENCY 25.0f
-#define SAMPLE_FREQUENCY	100.0f
-extern float acc_cal_x, acc_cal_y, acc_cal_z;
+bool calibrated = false;
+extern float degrees;
+float objective_dir = 0;
+float deviation_dir;
+float factorX = 0; // Indicates how wrong the direction is
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -167,12 +169,11 @@ VOID encodersThread_entry(ULONG initial_input) {
 		// Speed control
 		if (coche->isMoving()) {
 			// Update car speed
-			//TODO: Pasar factor extra del magnetómetro como parámetro, indicando a qué rueda aplicárselo
-			coche->updateSpeed();
+			coche->updateSpeed(factorX);
 		}
 
 		HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
-		tx_thread_sleep(10); // 100 ms
+		tx_thread_sleep(1); // 10 ms
 	}
 }
 
@@ -180,32 +181,40 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
-	motionFX_init();
 
-	print(&huart1, (char*) "Sensors initialized\n");
-
-	int delay = (int) (1000U / CALIBRATION_FREQUENCY);
-	delay /= 10; // ms to cs
-
-	while (!motionFX_calibrate(0)) {
-
-		print(&huart1, (char*) "Calibrando...\n");
-
-		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(delay); // Calibration frequency -> 25 Hz
-	}
-
-	print(&huart1, (char*) "Calibración completada!\n");
-
-	delay = (int) (1000U / SAMPLE_FREQUENCY);
-	delay /= 10; // ms to cs
+	motionEC_MC_init();
 
 	while (1) {
 
-		motionFX_calibrate(1);
+		if (motionEC_MC_calibrate(0)) {
+			calibrated = true;
+
+			if (objective_dir != 0){
+				// Calculate deviation from objective direction
+				float dist_left = (360 - degrees) + objective_dir;
+				float dist_right = objective_dir - degrees;
+				deviation_dir = (abs(dist_left) < abs(dist_right)) ? -dist_left : -dist_right;
+
+				//print(&huart1, (char*)"Deviation - Objetivo: ");
+				//print(&huart1, deviation_dir, (char*)" - ", objective_dir);
+
+				// (factorX < 0) -> left
+				// (factorX > 0) -> right
+				if (abs(deviation_dir) > 2){
+					factorX = deviation_dir;
+					if (factorX > 2) {
+						factorX = 2;
+					}
+					else if (factorX < -2){
+						factorX = -2;
+					}
+				}
+			}
+
+		}
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep (delay); // Algorithm frequency -> 100 Hz
+		tx_thread_sleep(1); // Algorithm frequency -> 100 Hz
 	}
 }
 /* USER CODE END 1 */
