@@ -40,7 +40,7 @@
 // Stacks sizes
 #define MAINTHREAD_STACK_SIZE 4096
 #define ENCODERS_STACK_SIZE 2048
-#define SENSORS_STACK_SIZE 4096
+#define SENSORS_STACK_SIZE 8192
 
 bool calibrated = false;
 extern float degrees;
@@ -104,7 +104,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 
 	/* USER CODE BEGIN App_ThreadX_Init */
 	tx_thread_create(&mainThread_ptr, (char* )"mainThread", mainThread_entry, 0,
-			mainThread_stack, MAINTHREAD_STACK_SIZE, 15, 15, 1, TX_AUTO_START);
+			mainThread_stack, MAINTHREAD_STACK_SIZE, 1, 1, 1, TX_AUTO_START);
 	tx_thread_create(&encodersThread_ptr, (char* )"encodersThread",
 			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
 			15, 15, 1, TX_AUTO_START);
