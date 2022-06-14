@@ -225,12 +225,12 @@ namespace RoboCar {
 	 * @param referenceSpeed Reference speed on which to regulate the speed
 	 * @param currentSpeed Current wheel speed (determined by its corresponding encoder)
 	 */
-	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed, float factorX) {
+	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed) {
 		if (!moving)
 			return;
 
 		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
-		pulse += pulse_change + factorX;
+		pulse += pulse_change;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 		else if (pulse < 0){
@@ -242,6 +242,16 @@ namespace RoboCar {
 		print(&huart1, (char *)"Pulse change: ", pulse_change);
 		print(&huart1, (char *)"Setting pulse to ", pulse);
 		*/
+		setPulse(pulse);
+	}
+
+	void WheelMotor::updateSpeed(float factorX){
+		pulse += pulse_change;
+		if (pulse > PERIOD)
+			pulse = PERIOD;
+		else if (pulse < 0){
+			pulse = 0;
+		}
 		setPulse(pulse);
 	}
 
