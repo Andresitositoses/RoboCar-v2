@@ -74,6 +74,7 @@ namespace RoboCar {
 		HAL_TIM_PWM_Start(&this->speedPin->htim, this->speedPin->channel);
 
 		// Default speed
+		this->speedPulse = 0;
 		this->pulse = 0;
 		this->speedPin->htim.Instance->CCR1 = this->pulse;
 
@@ -168,6 +169,7 @@ namespace RoboCar {
 		for (int i = 0; i < (int) speeds->size() - 1; i++) {
 			if (speeds->at(i).second <= speed && speeds->at(i + 1).second >= speed) {
 				setPulse(speeds->at(i).first);
+				speedPulse = speeds->at(i).first; // Useful to know start reference point
 				print(&huart1, (char *)"Setting pulse to ", speeds->at(i).first);
 				return true;
 			}
@@ -245,13 +247,21 @@ namespace RoboCar {
 		setPulse(pulse);
 	}
 
-	void WheelMotor::updateSpeed(float factorX){
-		pulse += factorX;
+	void WheelMotor::updateSpeed(float factorX, int limit){
+
+		if (factorX > limit) {
+			pulse = speedPulse + limit * PULSE_CONSTANT;
+		}
+		else {
+			pulse = speedPulse + factorX * PULSE_CONSTANT;
+		}
+
 		if (pulse > PERIOD)
 			pulse = PERIOD;
 		else if (pulse < 0){
 			pulse = 0;
 		}
+
 		setPulse(pulse);
 	}
 
