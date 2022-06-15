@@ -108,9 +108,9 @@ namespace RoboCar {
 		rightWheel->updateSpeed(speed, rightSpeed);
 	}
 
-	void RoboCar::updateSpeed(float factorX){
-		leftWheel->updateSpeed(-factorX);
-		rightWheel->updateSpeed(factorX);
+	void RoboCar::updateSpeed(float factorX, int limit){
+		leftWheel->updateSpeed(-factorX, limit);
+		rightWheel->updateSpeed(factorX, limit);
 	}
 
 	bool RoboCar::isMoving(){

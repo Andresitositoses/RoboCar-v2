@@ -95,6 +95,7 @@ namespace RoboCar {
 		// General variables for wheel operation
 		bool moving;
 		bool calibrated;
+		int speedPulse;
 		int pulse;
 
 	public:
@@ -115,7 +116,7 @@ namespace RoboCar {
 		bool setSpeed(float speed);
 		float getCurrentSpeed();
 		void updateSpeed(float referenceSpeed, float currentSpeed);
-		void updateSpeed(float factorX);
+		void updateSpeed(float factorX, int limit);
 
 		// Calibration functions
 		void calibrate();
