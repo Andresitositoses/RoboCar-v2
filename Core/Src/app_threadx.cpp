@@ -177,7 +177,7 @@ VOID encodersThread_entry(ULONG initial_input) {
 		// Speed control
 		if (coche->isMoving()) {
 			// Update car speed
-			coche->updateSpeed(factorX);
+			coche->updateSpeed();
 		}
 
 		HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
@@ -211,12 +211,14 @@ VOID sensorsThread_entry(ULONG initial_input) {
 				if (abs(deviation_dir) > 2){
 					factorX = deviation_dir;
 					if (factorX > 2) {
-						factorX = 2;
+						factorX = 0.02;
 					}
 					else if (factorX < -2){
-						factorX = -2;
+						factorX = -0.02;
 					}
 				}
+
+				coche->updateSpeed(factorX);
 			}
 
 		}
