@@ -40,12 +40,15 @@
 // Stacks sizes
 #define MAINTHREAD_STACK_SIZE 4096
 #define ENCODERS_STACK_SIZE 2048
-#define SENSORS_STACK_SIZE 4096
+#define SENSORS_STACK_SIZE 8192
 
-// Kalman filtering values
-#define CALIBRATION_FREQUENCY 25.0f
-#define SAMPLE_FREQUENCY	100.0f
-extern float acc_cal_x, acc_cal_y, acc_cal_z;
+bool calibrated = false;
+extern float degrees;
+float objective_dir = 0;
+float deviation_dir;
+float deviation_threshold = 1.5;
+float factorX = 0; // Indicates how wrong the direction is
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -138,12 +141,40 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	coche->loadCalibration();
 	coche->showCalibrations();
+	print(&huart1, (char *)"Rango de velocidades: ");
+	print(&huart1, coche->getMinSpeed(), (char *)" --- ", coche->getMaxSpeed());
+	coche->setMinSpeed();
+	coche->setSpeed(16);
 
-	int cont = 0;
+	while (!calibrated){
+		print(&huart1, (char*)"Calibrating...\n");
+		tx_thread_sleep(100); // 1s
+	}
+
+	print(&huart1, (char*)"Calibrado con éxito\n");
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
+	// Inicialmente, el LED parpadeará cuando no esté orientado hacia el grado 0
+	objective_dir = 1;
+
+	print(&huart1, (char*)"Push the botton to start.\n");
+
+	while (!HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
+		tx_thread_sleep(10); // 0.1s
+	}
+
+	objective_dir = degrees;
+
+	print(&huart1, (char*)"Orientación actual: ", objective_dir);
+
 	while (1) {
 
-		cont++;
-		//print(&huart1, (char*) "Escribo, luego existo. ", cont);
+		coche->goForward();
+
+		if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
+			objective_dir = degrees;
+		}
+
 		tx_thread_sleep(100); // 1s
 	}
 }
@@ -151,16 +182,20 @@ VOID mainThread_entry(ULONG initial_input) {
 // Encoders thread
 VOID encodersThread_entry(ULONG initial_input) {
 
+	int cont = 0;
+
 	while (1) {
 		// Speed control
 		if (coche->isMoving()) {
 			// Update car speed
-			//TODO: Pasar factor extra del magnetómetro como parámetro, indicando a qué rueda aplicárselo
-			coche->updateSpeed();
+			if (abs(deviation_dir) < deviation_threshold)
+				coche->updateSpeed();
 		}
 
-		HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
-		tx_thread_sleep(10); // 100 ms
+		cont = (cont + 1) % 100;
+		if (!cont)
+			HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
+		tx_thread_sleep(1); // 10 ms
 	}
 }
 
@@ -168,32 +203,47 @@ VOID encodersThread_entry(ULONG initial_input) {
 VOID sensorsThread_entry(ULONG initial_input) {
 
 	initSensors();
-	motionFX_init();
 
-	print(&huart1, (char*) "Sensors initialized\n");
+	motionEC_MC_init();
 
-	int delay = (int) (1000U / CALIBRATION_FREQUENCY);
-	delay /= 10; // ms to cs
-
-	while (!motionFX_calibrate(0)) {
-
-		print(&huart1, (char*) "Calibrando...\n");
-
-		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep(delay); // Calibration frequency -> 25 Hz
-	}
-
-	print(&huart1, (char*) "Calibración completada!\n");
-
-	delay = (int) (1000U / SAMPLE_FREQUENCY);
-	delay /= 10; // ms to cs
+	int blink_counter = 0;
 
 	while (1) {
 
-		motionFX_calibrate(1);
+		if (motionEC_MC_calibrate(0)) {
+			calibrated = true;
+
+			if (objective_dir != 0){
+				// Calculate deviation from objective direction
+				float dist_left = (360 - degrees) + objective_dir;
+				float dist_right = objective_dir - degrees;
+				deviation_dir = (abs(dist_left) < abs(dist_right)) ? -dist_left : -dist_right;
+
+				print(&huart1, (char*)"Deviation - Objetivo: ");
+				print(&huart1, deviation_dir, (char*)" - ", objective_dir);
+
+				// (factorX < 0) -> left
+				// (factorX > 0) -> right
+				if (abs(deviation_dir) > deviation_threshold){
+
+					factorX = deviation_dir / 7.5;
+
+					coche->updateSpeed(factorX, 3);
+
+					blink_counter = (blink_counter + 1) % 10;
+					if (!blink_counter) HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+					print(&huart1, (char*)"Aplicando corrección...\n");
+				}
+				else {
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+				}
+
+			}
+
+		}
 
 		HAL_GPIO_TogglePin(RED_LED_PORT, RED_LED_PIN);
-		tx_thread_sleep (delay); // Algorithm frequency -> 100 Hz
+		tx_thread_sleep(1); // Algorithm frequency -> 100 Hz
 	}
 }
 /* USER CODE END 1 */
