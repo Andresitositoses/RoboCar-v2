@@ -60,3 +60,11 @@ void print(UART_HandleTypeDef *huart, int value1, char *str, int value2){
 	print(huart, value2);
 	print(huart, (char *)"\n");
 }
+
+// Float + Char * + Int
+void print(UART_HandleTypeDef *huart, float value1, char *str, int value2){
+	print(huart, value1);
+	print(huart, str);
+	print(huart, value2);
+	print(huart, (char *)"\n");
+}

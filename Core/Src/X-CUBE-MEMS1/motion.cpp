@@ -15,20 +15,17 @@
 #include "X-CUBE-MEMS1/motion_ac2.h"
 #include "X-CUBE-MEMS1/motion_mc.h"
 #include "X-CUBE-MEMS1/motion_fx.h"
+#include "X-CUBE-MEMS1/motion_ec.h"
 
 #define VERSION_STR_LENG 		35
 #define REPORT_INTERVAL 		20
 #define SAMPLE_FREQUENCY 		25.0f
-
-// For MotionAC
-#define DYNAMIC_CALIBRATION 	0
 
 // For MotionFX
 #define STATE_SIZE (size_t)(2450)
 static uint8_t mfxstate[STATE_SIZE ];
 #define CAL_FREQ  25U /* Algorithm frequency 25 Hz */
 #define ALGO_FREQ  100U /* Algorithm frequency 100 Hz */
-#define ENABLE_6X 0
 #define FROM_UT50_TO_MGAUSS  500.0f
 #define FROM_MGAUSS_TO_UT50  (0.1f/50.0f)
 #define GBIAS_ACC_TH_SC                 (2.0f*0.000765f)
@@ -37,23 +34,28 @@ static uint8_t mfxstate[STATE_SIZE ];
 #define DECIMATION                      1U
 
 // For MotionEC
-float min_ec = 110;
-float max_ec = 134;
-float diff_ec;
+float AccMatrix[3][3];
+float MagMatrix[3][3];
 
 // Handlers
 extern UART_HandleTypeDef huart1;
 
+// General variables
 float acc_cal_x, acc_cal_y, acc_cal_z;
 float gyr_cal_x, gyr_cal_y, gyr_cal_z;
 float mag_cal_x, mag_cal_y, mag_cal_z;
-float yaw, pitch, roll;
 uint64_t time_stamp_uint64 = 0;
 uint32_t prevTick, currTick;
+float degrees;
 
-// Init functions
+//////////////////////////////////////////////////////////////
+//////////////////// Motion init functions ///////////////////
+//////////////////////////////////////////////////////////////
 
 void motionAC_init() {
+
+	__CRC_CLK_ENABLE()
+	;
 
 	prevTick = HAL_GetTick();
 	currTick = prevTick;
@@ -66,7 +68,7 @@ void motionAC_init() {
 	MotionAC_Initialize(1);
 	MotionAC_GetKnobs(&Knobs);
 	Knobs.MoveThresh_g = 0.2f;
-	Knobs.Run6PointCal = DYNAMIC_CALIBRATION;
+	Knobs.Run6PointCal = 0; // 0 -> DYNAMIC_CALIBRATION
 	Knobs.Sample_ms = REPORT_INTERVAL;
 	MotionAC_SetKnobs(&Knobs);
 
@@ -77,6 +79,9 @@ void motionAC_init() {
 }
 
 void motionAC2_init() {
+
+	__CRC_CLK_ENABLE()
+	;
 
 	float sample_frequency = SAMPLE_FREQUENCY;
 	prevTick = HAL_GetTick();
@@ -103,8 +108,6 @@ void motionAC2_init() {
 void motionGC_init() {
 
 	float sample_frequency = SAMPLE_FREQUENCY;
-	prevTick = HAL_GetTick();
-	currTick = prevTick;
 
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
@@ -127,10 +130,13 @@ void motionGC_init() {
 
 void motionMC_init() {
 
+	__CRC_CLK_ENABLE()
+	;
+
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
 
-	MotionMC_Initialize(REPORT_INTERVAL, 1);
+	MotionMC_Initialize(10, 1); // 10 -> time[ms] between update function calls
 
 	MotionMC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
@@ -138,6 +144,9 @@ void motionMC_init() {
 }
 
 void motionFX_init() {
+
+	__CRC_CLK_ENABLE()
+	;
 
 	prevTick = HAL_GetTick();
 	currTick = prevTick;
@@ -154,6 +163,7 @@ void motionFX_init() {
 	// Sensor Fusion API initialization function
 	MotionFX_initialize((MFXState_t*) mfxstate);
 	MotionFX_getKnobs((MFXState_t*) mfxstate, &Knobs);
+
 	Knobs.acc_orientation[0] = 'n';
 	Knobs.acc_orientation[1] = 'w';
 	Knobs.acc_orientation[2] = 'u';
@@ -176,7 +186,7 @@ void motionFX_init() {
 	MotionFX_setKnobs((MFXState_t*) mfxstate, &Knobs);
 
 	// Enable 9-axis sensor fusion (ACC + GYRO + MAG)
-	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_DISABLE);
+	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_ENABLE);
 
 	// Enable magnetometer calibration
 	MotionFX_MagCal_init(1000U / CAL_FREQ, 1);
@@ -199,7 +209,16 @@ void motionEC_init() {
 	char lib_version[VERSION_STR_LENG];
 	float freq = ALGO_FREQ;
 
-	// Accelerometer calibration API initialization function
+	char acc_orientation[4];
+	char mag_orientation[4];
+
+	Acc_GetOrientation(acc_orientation);
+	Mag_GetOrientation(mag_orientation);
+
+	calc_matrix(acc_orientation, AccMatrix);
+	calc_matrix(mag_orientation, MagMatrix);
+
+	// eCompass calibration API initialization function
 	MotionEC_Initialize(MEC_MCU_STM32, &freq);
 
 	MotionEC_SetOrientationEnable(MEC_ENABLE);
@@ -211,10 +230,16 @@ void motionEC_init() {
 	MotionEC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
 	print(&huart1, (char*) "\n");
-
 }
 
-// Calibration functions
+void motionEC_MC_init(){
+	motionMC_init();
+	motionEC_init();
+}
+
+//////////////////////////////////////////////////////////////
+///////////// Motion calibration functions ///////////////////
+//////////////////////////////////////////////////////////////
 
 void motionAC_calibrate(bool print_values) {
 
@@ -409,7 +434,7 @@ void motionGC_calibrate(bool print_values) {
 	}
 }
 
-void motionMC_calibrate(bool print_values) {
+bool motionMC_calibrate(bool print_values) {
 
 	float mag_x_mG, mag_y_mG, mag_z_mG;
 	MMC_Input_t *data_in = new MMC_Input_t;
@@ -422,6 +447,7 @@ void motionMC_calibrate(bool print_values) {
 	data_in->Mag[0] = (float) mag_x_mG / 10.0f;
 	data_in->Mag[1] = (float) mag_y_mG / 10.0f;
 	data_in->Mag[2] = (float) mag_z_mG / 10.0f;
+
 	currTick = HAL_GetTick();
 	time_stamp_uint64 += currTick - prevTick;
 	data_in->TimeStamp = time_stamp_uint64;
@@ -505,6 +531,8 @@ void motionMC_calibrate(bool print_values) {
 
 	free(data_in);
 	free(data_out);
+
+	return (data_out->CalQuality == MMC_CALQSTATUSGOOD);
 }
 
 bool motionFX_calibrate(bool print_values) {
@@ -526,7 +554,7 @@ bool motionFX_calibrate(bool print_values) {
 	mag_data_in.time_stamp = time_stamp_uint64;
 	MotionFX_MagCal_run(&mag_data_in);
 
-	// Test if calibration data are available
+	// Test if calibration data are available and get bias values
 	MFX_MagCal_output_t mag_cal_test;
 	MotionFX_MagCal_getParams(&mag_cal_test);
 
@@ -553,10 +581,10 @@ bool motionFX_calibrate(bool print_values) {
 		data_in.gyro[1] = (float) gyr_y_mpds / 1000.0f;
 		data_in.gyro[2] = (float) gyr_z_mpds / 1000.0f;
 
-		// Convert magnetic field intensity from [mGauss] to [uT / 50]
-		data_in.mag[0] = mag_data_in.mag[0];
-		data_in.mag[1] = mag_data_in.mag[1];
-		data_in.mag[2] = mag_data_in.mag[2];
+		// Apply calibration results [uT/50]
+		data_in.mag[0] = mag_data_in.mag[0] - mag_cal_test.hi_bias[0];
+		data_in.mag[1] = mag_data_in.mag[1] - mag_cal_test.hi_bias[1];
+		data_in.mag[2] = mag_data_in.mag[2] - mag_cal_test.hi_bias[2];
 
 		// Run Sensor Fusion algorithm
 		// propagate: estimates the orientation in 3D space by giving more weight to gyroscope data
@@ -580,15 +608,19 @@ bool motionFX_calibrate(bool print_values) {
 					mag_cal_test.cal_quality);
 
 			// Quaternion
-			print(&huart1, (char*) "quaternion[0]: ", data_out.quaternion[0]);
-			print(&huart1, (char*) "quaternion[1]: ", data_out.quaternion[1]);
-			print(&huart1, (char*) "quaternion[2]: ", data_out.quaternion[2]);
-			print(&huart1, (char*) "quaternion[3]: ", data_out.quaternion[3]);
+			print(&huart1, (char*) "quaternion[0]: ",
+					data_out.quaternion[0]);
+			print(&huart1, (char*) "quaternion[1]: ",
+					data_out.quaternion[1]);
+			print(&huart1, (char*) "quaternion[2]: ",
+					data_out.quaternion[2]);
+			print(&huart1, (char*) "quaternion[3]: ",
+					data_out.quaternion[3]);
 
 			// Rotation
-			print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]);
-			print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]);
-			print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]);
+			print(&huart1, (char*) "rotation[0]: ", data_out.rotation[0]); // yaw
+			print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]); // pitch
+			print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]); // roll
 
 			// Gravity
 			print(&huart1, (char*) "gravity.x: ", data_out.gravity[0]);
@@ -608,13 +640,14 @@ bool motionFX_calibrate(bool print_values) {
 			print(&huart1, (char*) "headingErr: ", data_out.headingErr);
 
 			// TimeStamp
-			print(&huart1, (char *)"time_stamp: ", (int) time_stamp_uint64);
+			print(&huart1, (char*) "time_stamp: ", (int) time_stamp_uint64);
 		}
 
 	} else {
 
 		if (print_values) {
-			print(&huart1, (char*) "mag_cal_quality: ", mag_cal_test.cal_quality);
+			print(&huart1, (char*) "mag_cal_quality: ",
+					mag_cal_test.cal_quality);
 		}
 
 		return false;
@@ -651,40 +684,235 @@ void motionEC_calibrate(bool print_values) {
 	data_in.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
 	data_in.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
 
+	// Delta time [s]
 	data_in.deltatime_s = delta_time;
 
+	// Run E-Compass algorithm
 	MotionEC_Run(&data_in, &data_out);
 
-	yaw = data_out.euler[0];
-	pitch = data_out.euler[1];
-	roll = data_out.euler[2];
-
-	if (yaw < min_ec) {
-		min_ec = yaw;
-		diff_ec = max_ec - min_ec;
-		if (diff_ec > 24.0) {
-			max_ec = min_ec + 24.0;
-		}
-	} else if (yaw > max_ec) {
-		max_ec = yaw;
-		diff_ec = max_ec - min_ec;
-		if (diff_ec > 24.0) {
-			min_ec = max_ec - 24.0;
-		}
-	}
-
 	if (print_values) {
-		/*
-		print(&huart1, (char*) "euler[0]: ", yaw);
-		print(&huart1, (char*) "euler[1]: ", pitch);
-		print(&huart1, (char*) "euler[2]: ", roll);
-		*/
-		//TODO: Mover este cálculo a MotionEC_GC
-		print(&huart1, (char*) "Degrees_180: ", (float) (180.0 / (max_ec - min_ec) * (yaw - min_ec)));
+		// Rotation values
+		print(&huart1, (char*) "euler[0]: ", data_out.euler[0]);
+		print(&huart1, (char*) "euler[1]: ", data_out.euler[1]);
+		print(&huart1, (char*) "euler[2]: ", data_out.euler[2]);
+
+		// Gravity values
+		print(&huart1, (char*) "gravity[0]: ", data_out.gravity[0]);
+		print(&huart1, (char*) "gravity[1]: ", data_out.gravity[1]);
+		print(&huart1, (char*) "gravity[2]: ", data_out.gravity[2]);
 	}
 }
 
-// Convertion functions
+bool motionEC_MC_calibrate(bool print_values) {
+
+	// Calculate mag_cal values
+	if (!motionMC_calibrate(0)) {
+		return false;
+	}
+
+	// Read acceleration X/Y/Z values in mg
+	float acc_x_mg, acc_y_mg, acc_z_mg;
+	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
+
+	MEC_input_t data_in;
+	MEC_output_t data_out;
+
+	// Do sensor orientation transformation: &AccValue, &MagValueComp, data_in.acc, data_in.mag
+	float acc[3] = {acc_x_mg, acc_y_mg, acc_z_mg};
+	float mag[3] = {mag_cal_x, mag_cal_y, mag_cal_z};
+	transform_orientation(acc, data_in.acc, AccMatrix);
+	transform_orientation(mag, data_in.mag, MagMatrix);
+
+	// Convert raw accelerometer data from [mg] to [g]
+	data_in.acc[0] = data_in.acc[0] / 1000.0f; /* East */
+	data_in.acc[1] = data_in.acc[1] / 1000.0f; /* North */
+	data_in.acc[2] = data_in.acc[2] / 1000.0f; /* Up */
+
+	// Convert compensated magnetometer data from [mGauss] to [uT / 50], [mGauss / 5]
+	data_in.mag[0] = data_in.mag[0] / 5.0f; /* East */
+	data_in.mag[1] = data_in.mag[1] / 5.0f; /* North */
+	data_in.mag[2] = data_in.mag[2] / 5.0f; /* Up */
+
+	// Delta time [s]
+	data_in.deltatime_s = time_stamp_uint64 / 1000;
+
+	// Run E-Compass algorithm
+	MotionEC_Run(&data_in, &data_out);
+
+	degrees = data_out.euler[0];
+
+	if (print_values) {
+		// Rotation values
+		print(&huart1, (char*) "euler[0]: ", data_out.euler[0]);
+		print(&huart1, (char*) "euler[1]: ", data_out.euler[1]);
+		print(&huart1, (char*) "euler[2]: ", data_out.euler[2]);
+
+		// Gravity values
+		print(&huart1, (char*) "gravity[0]: ", data_out.gravity[0]);
+		print(&huart1, (char*) "gravity[1]: ", data_out.gravity[1]);
+		print(&huart1, (char*) "gravity[2]: ", data_out.gravity[2]);
+	}
+
+	return true;
+}
+
+//////////////////////////////////////////////////////////////
+//////////////////// Auxiliary functions /////////////////////
+//////////////////////////////////////////////////////////////
+
+void Acc_GetOrientation(char *Orientation)
+{
+	Orientation[0] = 'n';
+	Orientation[1] = 'w';
+	Orientation[2] = 'u';
+}
+
+void Mag_GetOrientation(char *Orientation)
+{
+	Orientation[0] = 'n';
+	Orientation[1] = 'e';
+	Orientation[2] = 'u';
+}
+
+void calc_matrix(char orientation[], float matrix[][3])
+{
+	matrix[0][0] = (orientation[0] == 'e') ?  1
+			   : (orientation[0] == 'w') ? -1
+			   :                            0;
+
+	matrix[0][1] = (orientation[1] == 'e') ?  1
+			   : (orientation[1] == 'w') ? -1
+			   :                            0;
+
+	matrix[0][2] = (orientation[2] == 'e') ?  1
+			   : (orientation[2] == 'w') ? -1
+			   :                            0;
+
+	matrix[1][0] = (orientation[0] == 'n') ?  1
+			   : (orientation[0] == 's') ? -1
+			   :                            0;
+
+	matrix[1][1] = (orientation[1] == 'n') ?  1
+			   : (orientation[1] == 's') ? -1
+			   :                            0;
+
+	matrix[1][2] = (orientation[2] == 'n') ?  1
+			   : (orientation[2] == 's') ? -1
+			   :                            0;
+
+	matrix[2][0] = (orientation[0] == 'u') ?  1
+			   : (orientation[0] == 'd') ? -1
+			   :                            0;
+
+	matrix[2][1] = (orientation[1] == 'u') ?  1
+			   : (orientation[1] == 'd') ? -1
+			   :                            0;
+
+	matrix[2][2] = (orientation[2] == 'u') ?  1
+			   : (orientation[2] == 'd') ? -1
+			   :                            0;
+}
+
+void q_conjug(float q_conj[], float q_src[])
+{
+	q_conj[0] = (-1.0f) * q_src[0];
+	q_conj[1] = (-1.0f) * q_src[1];
+	q_conj[2] = (-1.0f) * q_src[2];
+	q_conj[3] =           q_src[3];
+}
+
+void q_multiply(float q_res[], float q_a[], float q_b[])
+{
+	q_res[0] =
+	q_a[3] * q_b[0]
+	+ q_a[0] * q_b[3]
+	+ q_a[1] * q_b[2]
+	- q_a[2] * q_b[1]
+	;
+
+	q_res[1] =
+	q_a[3] * q_b[1]
+	+ q_a[1] * q_b[3]
+	+ q_a[2] * q_b[0]
+	- q_a[0] * q_b[2]
+	;
+
+	q_res[2] =
+	q_a[3] * q_b[2]
+	+ q_a[2] * q_b[3]
+	+ q_a[0] * q_b[1]
+	- q_a[1] * q_b[0]
+	;
+
+	q_res[3] =
+	q_a[3] * q_b[3]
+	- q_a[0] * q_b[0]
+	- q_a[1] * q_b[1]
+	- q_a[2] * q_b[2]
+	;
+}
+
+void v_rotate(float v_new[], float q_rot[], float v_old[])
+{
+	float q_old[4];
+	float q_new[4];
+	float q_rot_inv[4];
+	float q_temp[4];
+
+	/* Create quaternion from old position vector */
+	q_old[0] = v_old[0];
+	q_old[1] = v_old[1];
+	q_old[2] = v_old[2];
+	q_old[3] = 0.0f;
+
+	q_conjug(q_rot_inv, q_rot);
+	q_multiply(q_temp, q_old, q_rot_inv);
+	q_multiply(q_new, q_rot, q_temp);
+
+	v_new[0] = q_new[0];
+	v_new[1] = q_new[1];
+	v_new[2] = q_new[2];
+}
+
+int calc_heading(float *heading, float v_head[])
+{
+	const float tol_deg = 5.0f; /* Tolerance [deg] */
+	float tolerance = sinf(tol_deg * M_PI / 180.0f);
+
+	if (v_head[0] > (-1.0f) * tolerance && v_head[0] < tolerance
+		&& v_head[1] > (-1.0f) * tolerance && v_head[1] < tolerance)
+	{
+		*heading = 0.0f;
+		return 0; /* Device is pointing up or down - it is impossible to evaluate heading */
+	}
+
+	else
+	{
+		*heading = atan2f(v_head[0], v_head[1]) * 180.0f / M_PI;
+		*heading = floorf(*heading * 100.0f + 0.5f) / 100.0f;          /* Rounds number to two decimal digits */
+		*heading = (*heading < 0.0f) ? (*heading + 360.0f) : *heading; /* Change negative value to be in range <0,360) */
+		return 1;
+	}
+}
+
+void MotionEC_manager_calc_heading(float quaternion[], float *heading, int *heading_valid){
+	float v_base[3] = {0.0, 1.0, 0.0};
+	float v_head[3];
+
+	v_rotate(v_head, quaternion, v_base);
+	*heading_valid = calc_heading(heading, v_head);
+}
+
+void transform_orientation(float *input, float output[], float matrix[][3])
+{
+	output[0] = matrix[0][0] * input[0]  +  matrix[0][1] * input[1]  +  matrix[0][2] * input[2];
+	output[1] = matrix[1][0] * input[0]  +  matrix[1][1] * input[1]  +  matrix[1][2] * input[2];
+	output[2] = matrix[2][0] * input[0]  +  matrix[2][1] * input[1]  +  matrix[2][2] * input[2];
+}
+
+//////////////////////////////////////////////////////////////
+//////////////////// Convertion functions ////////////////////
+//////////////////////////////////////////////////////////////
 
 float acc_bias_to_mg(float acc_bias) {
 	float ans_float;
@@ -720,4 +948,12 @@ float mag_val_to_mGauss(float mag_val_uT) {
 		mGauss_float = mag_val_uT * 10.0f - 0.5f;
 		return mGauss_float;
 	}
+}
+
+//////////////////////////////////////////////////////////////
+/////////////////////////// Getters //////////////////////////
+//////////////////////////////////////////////////////////////
+
+float motion_getDegrees(){
+	return degrees;
 }
