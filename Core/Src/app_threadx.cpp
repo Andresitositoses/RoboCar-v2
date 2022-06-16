@@ -46,6 +46,7 @@ bool calibrated = false;
 extern float degrees;
 float objective_dir = 0;
 float deviation_dir;
+float deviation_threshold = 1.5;
 float factorX = 0; // Indicates how wrong the direction is
 
 /* USER CODE END PD */
@@ -104,7 +105,7 @@ UINT App_ThreadX_Init(VOID *memory_ptr) {
 
 	/* USER CODE BEGIN App_ThreadX_Init */
 	tx_thread_create(&mainThread_ptr, (char* )"mainThread", mainThread_entry, 0,
-			mainThread_stack, MAINTHREAD_STACK_SIZE, 1, 1, 1, TX_AUTO_START);
+			mainThread_stack, MAINTHREAD_STACK_SIZE, 15, 15, 1, TX_AUTO_START);
 	tx_thread_create(&encodersThread_ptr, (char* )"encodersThread",
 			encodersThread_entry, 0, encondersThread_stack, ENCODERS_STACK_SIZE,
 			15, 15, 1, TX_AUTO_START);
@@ -143,14 +144,18 @@ VOID mainThread_entry(ULONG initial_input) {
 	print(&huart1, (char *)"Rango de velocidades: ");
 	print(&huart1, coche->getMinSpeed(), (char *)" --- ", coche->getMaxSpeed());
 	coche->setMinSpeed();
+	coche->setSpeed(16);
 
 	while (!calibrated){
 		print(&huart1, (char*)"Calibrating...\n");
-		tx_thread_sleep(10); // 0.1s
+		tx_thread_sleep(100); // 1s
 	}
 
 	print(&huart1, (char*)"Calibrado con éxito\n");
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
+	// Inicialmente, el LED parpadeará cuando no esté orientado hacia el grado 0
+	objective_dir = 1;
 
 	print(&huart1, (char*)"Push the botton to start.\n");
 
@@ -166,6 +171,10 @@ VOID mainThread_entry(ULONG initial_input) {
 
 		coche->goForward();
 
+		if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
+			objective_dir = degrees;
+		}
+
 		tx_thread_sleep(100); // 1s
 	}
 }
@@ -173,14 +182,19 @@ VOID mainThread_entry(ULONG initial_input) {
 // Encoders thread
 VOID encodersThread_entry(ULONG initial_input) {
 
+	int cont = 0;
+
 	while (1) {
 		// Speed control
 		if (coche->isMoving()) {
 			// Update car speed
-			coche->updateSpeed();
+			if (abs(deviation_dir) < deviation_threshold)
+				coche->updateSpeed();
 		}
 
-		HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
+		cont = (cont + 1) % 100;
+		if (!cont)
+			HAL_GPIO_TogglePin(GREEN_LED_PORT, GREEN_LED_PIN);
 		tx_thread_sleep(1); // 10 ms
 	}
 }
@@ -203,22 +217,29 @@ VOID sensorsThread_entry(ULONG initial_input) {
 				float dist_right = objective_dir - degrees;
 				deviation_dir = (abs(dist_left) < abs(dist_right)) ? -dist_left : -dist_right;
 
-				//print(&huart1, (char*)"Deviation - Objetivo: ");
-				//print(&huart1, deviation_dir, (char*)" - ", objective_dir);
+				print(&huart1, (char*)"Deviation - Objetivo: ");
+				print(&huart1, deviation_dir, (char*)" - ", objective_dir);
 
 				// (factorX < 0) -> left
 				// (factorX > 0) -> right
-				if (abs(deviation_dir) > 2){
-					factorX = deviation_dir;
-					if (factorX > 2) {
-						factorX = 0.02;
+				if (abs(deviation_dir) > deviation_threshold){
+
+					factorX = deviation_dir / 5;
+
+					if (factorX > 0){
+						coche->updateSpeed(factorX, 2);
 					}
-					else if (factorX < -2){
-						factorX = -0.02;
+					else {
+						coche->updateSpeed(factorX, 3);
 					}
+
+					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+					print(&huart1, (char*)"Aplicando corrección...\n");
+				}
+				else {
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 				}
 
-				coche->updateSpeed(factorX);
 			}
 
 		}
