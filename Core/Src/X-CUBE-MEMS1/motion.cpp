@@ -136,7 +136,7 @@ void motionMC_init() {
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
 
-	MotionMC_Initialize(REPORT_INTERVAL, 1);
+	MotionMC_Initialize(10, 1); // 10 -> time[ms] between update function calls
 
 	MotionMC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
