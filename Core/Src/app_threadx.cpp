@@ -206,6 +206,8 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	motionEC_MC_init();
 
+	int blink_counter = 0;
+
 	while (1) {
 
 		if (motionEC_MC_calibrate(0)) {
@@ -224,16 +226,12 @@ VOID sensorsThread_entry(ULONG initial_input) {
 				// (factorX > 0) -> right
 				if (abs(deviation_dir) > deviation_threshold){
 
-					factorX = deviation_dir / 5;
+					factorX = deviation_dir / 7.5;
 
-					if (factorX > 0){
-						coche->updateSpeed(factorX, 2);
-					}
-					else {
-						coche->updateSpeed(factorX, 3);
-					}
+					coche->updateSpeed(factorX, 3);
 
-					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
+					blink_counter = (blink_counter + 1) % 10;
+					if (!blink_counter) HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
 					print(&huart1, (char*)"Aplicando corrección...\n");
 				}
 				else {
