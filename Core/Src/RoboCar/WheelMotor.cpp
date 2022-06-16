@@ -19,9 +19,11 @@
 #define PULSE_CONSTANT 				5
 
 // Measure parameters
-#define MEASURES_FOR_SPEED          4
+#define MEASURES_FOR_SPEED          6
 #define MAX_ATTEMPTS_TO_READ        450000
 #define CYCLES_PER_SECOND			160000000
+
+#define MINIMUN_VARIATION			10
 
 namespace RoboCar {
 
@@ -249,8 +251,17 @@ namespace RoboCar {
 
 	void WheelMotor::updateSpeed(float factorX, int limit){
 
+		/*
+		print(&huart1, (char*)"factorX: ", factorX);
+		print(&huart1, (char*)"limit: ", limit);
+		print(&huart1, (char*)"speedPulse: ", speedPulse);
+		*/
+
 		if (factorX > limit) {
-			pulse = speedPulse + limit * PULSE_CONSTANT;
+			pulse = speedPulse + MINIMUN_VARIATION + limit * PULSE_CONSTANT;
+		}
+		else if (factorX < -limit) {
+			pulse = speedPulse - MINIMUN_VARIATION - limit * PULSE_CONSTANT;
 		}
 		else {
 			pulse = speedPulse + factorX * PULSE_CONSTANT;
@@ -261,6 +272,8 @@ namespace RoboCar {
 		else if (pulse < 0){
 			pulse = 0;
 		}
+
+		//print(&huart1, (char*)"Nuevo pulso: ", pulse);
 
 		setPulse(pulse);
 	}
