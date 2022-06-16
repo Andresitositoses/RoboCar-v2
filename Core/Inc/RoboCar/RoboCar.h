@@ -33,6 +33,8 @@ namespace RoboCar {
 
 		void goForward();
 		void goBackward();
+		void rotateLeft();
+		void rotateRight();
 		void stop();
 
 		void setSpeed(float speed);
@@ -43,6 +45,7 @@ namespace RoboCar {
 		float getMinSpeed();
 		float getMaxSpeed();
 		void updateSpeed();
+		void updateSpeed(float factorX, int limit);
 		bool isMoving();
 
 		//TODO: obtención de la distancia en un sentido

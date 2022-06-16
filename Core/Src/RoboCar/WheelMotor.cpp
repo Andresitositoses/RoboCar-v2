@@ -23,6 +23,8 @@
 #define MAX_ATTEMPTS_TO_READ        450000
 #define CYCLES_PER_SECOND			160000000
 
+#define MINIMUN_VARIATION			10
+
 namespace RoboCar {
 
 	WheelMotor::WheelMotor(Wheel wheel) {
@@ -74,6 +76,7 @@ namespace RoboCar {
 		HAL_TIM_PWM_Start(&this->speedPin->htim, this->speedPin->channel);
 
 		// Default speed
+		this->speedPulse = 0;
 		this->pulse = 0;
 		this->speedPin->htim.Instance->CCR1 = this->pulse;
 
@@ -168,6 +171,7 @@ namespace RoboCar {
 		for (int i = 0; i < (int) speeds->size() - 1; i++) {
 			if (speeds->at(i).second <= speed && speeds->at(i + 1).second >= speed) {
 				setPulse(speeds->at(i).first);
+				speedPulse = speeds->at(i).first; // Useful to know start reference point
 				print(&huart1, (char *)"Setting pulse to ", speeds->at(i).first);
 				return true;
 			}
@@ -225,16 +229,52 @@ namespace RoboCar {
 	 * @param referenceSpeed Reference speed on which to regulate the speed
 	 * @param currentSpeed Current wheel speed (determined by its corresponding encoder)
 	 */
-	void WheelMotor::updateSpeed(int referenceSpeed, int currentSpeed) {
+	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed) {
 		if (!moving)
 			return;
 
-		int pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
+		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
 		pulse += pulse_change;
 		if (pulse > PERIOD)
 			pulse = PERIOD;
-
+		else if (pulse < 0){
+			pulse = 0;
+		}
+		/*
+		print(&huart1, (char *)"Reference speed: ", referenceSpeed);
+		print(&huart1, (char *)"Current speed: ", currentSpeed);
+		print(&huart1, (char *)"Pulse change: ", pulse_change);
 		print(&huart1, (char *)"Setting pulse to ", pulse);
+		*/
+		setPulse(pulse);
+	}
+
+	void WheelMotor::updateSpeed(float factorX, int limit){
+
+		/*
+		print(&huart1, (char*)"factorX: ", factorX);
+		print(&huart1, (char*)"limit: ", limit);
+		print(&huart1, (char*)"speedPulse: ", speedPulse);
+		*/
+
+		if (factorX > limit) {
+			pulse = speedPulse + MINIMUN_VARIATION + limit * PULSE_CONSTANT;
+		}
+		else if (factorX < -limit) {
+			pulse = speedPulse - MINIMUN_VARIATION - limit * PULSE_CONSTANT;
+		}
+		else {
+			pulse = speedPulse + factorX * PULSE_CONSTANT;
+		}
+
+		if (pulse > PERIOD)
+			pulse = PERIOD;
+		else if (pulse < 0){
+			pulse = 0;
+		}
+
+		//print(&huart1, (char*)"Nuevo pulso: ", pulse);
+
 		setPulse(pulse);
 	}
 
