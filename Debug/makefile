@@ -16,6 +16,7 @@ RM := rm -rf
 -include Core/Startup/subdir.mk
 -include Core/Src/X-CUBE-MEMS1/subdir.mk
 -include Core/Src/RoboCar/subdir.mk
+-include Core/Src/PinsLib/subdir.mk
 -include Core/Src/BSP/motion_sensors/subdir.mk
 -include Core/Src/BSP/env_sensors/subdir.mk
 -include Core/Src/BSP/Components/lps22hh/subdir.mk

@@ -39,6 +39,7 @@ Core/Src/BSP/Components/lps22hh \
 Core/Src/BSP \
 Core/Src/BSP/env_sensors \
 Core/Src/BSP/motion_sensors \
+Core/Src/PinsLib \
 Core/Src/RoboCar \
 Core/Src/X-CUBE-MEMS1 \
 Core/Src \
