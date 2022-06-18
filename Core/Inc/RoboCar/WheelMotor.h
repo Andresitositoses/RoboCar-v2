@@ -21,6 +21,9 @@
 #include "stm32u5xx_ll_dma.h"
 #include "stm32u5xx_ll_exti.h"
 
+#include "PinsLib/gpio.h"
+#include "PinsLib/pwm.h"
+
 #include "string"
 #include "vector"
 
@@ -60,16 +63,6 @@ using std::pair;
 
 namespace RoboCar {
 
-	struct GPIO {
-		uint32_t number;
-		GPIO_TypeDef *port;
-	};
-
-	struct PWM {
-		TIM_HandleTypeDef htim;
-		uint32_t channel;
-	};
-
 	// Types of wheels
 	enum Wheel {
 		LEFT = 1, RIGHT = 0
@@ -78,14 +71,14 @@ namespace RoboCar {
 	class WheelMotor {
 	private:
 		// GPIO pins used for wheel direction
-		GPIO *forwardPin;
-		GPIO *backwardPin;
+		gpio *forwardPin;
+		gpio *backwardPin;
 
 		// PWM pin used for wheel speed
-		PWM *speedPin;
+		pwm *speedPin;
 
 		// GPIO pin for wheel encoder
-		GPIO *encoderPin;
+		gpio *encoderPin;
 
 		// Speed configuration parameters
 		std::vector<std::pair<int, float>> *speeds;
