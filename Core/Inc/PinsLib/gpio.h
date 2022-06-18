@@ -21,7 +21,7 @@ class gpio {
 		~gpio();
 
 		void write(int state);
-		int read(int state);
+		int read();
 };
 
 #endif /* INC_PINSLIB_GPIO_H_ */

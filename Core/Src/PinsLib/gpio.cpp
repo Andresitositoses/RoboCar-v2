@@ -21,6 +21,6 @@ void gpio::write(int state) {
 	HAL_GPIO_WritePin(port, number, (GPIO_PinState) state);
 }
 
-int gpio::read(int state) {
+int gpio::read() {
 	return HAL_GPIO_ReadPin(port, number);
 }
