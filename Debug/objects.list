@@ -15,6 +15,7 @@
 "./Core/Src/RoboCar/RoboCar.o"
 "./Core/Src/RoboCar/WheelMotor.o"
 "./Core/Src/X-CUBE-MEMS1/motion.o"
+"./Core/Src/algorithms.o"
 "./Core/Src/app_threadx.o"
 "./Core/Src/main.o"
 "./Core/Src/print.o"
