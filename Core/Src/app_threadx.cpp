@@ -24,6 +24,7 @@
 #include "print.h"
 #include "sensors.h"
 #include "RoboCar/RoboCar.h"
+#include "algorithms.h"
 #include "X-CUBE-MEMS1/motion.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -42,6 +43,7 @@
 #define ENCODERS_STACK_SIZE 2048
 #define SENSORS_STACK_SIZE 8192
 
+bool bottom = false;
 bool calibrated = false;
 extern float degrees;
 float objective_dir = 0;
@@ -141,9 +143,6 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	coche->loadCalibration();
 	coche->showCalibrations();
-	print(&huart1, (char *)"Rango de velocidades: ");
-	print(&huart1, coche->getMinSpeed(), (char *)" --- ", coche->getMaxSpeed());
-	coche->setMinSpeed();
 	coche->setSpeed(16);
 
 	while (!calibrated){
@@ -155,25 +154,23 @@ VOID mainThread_entry(ULONG initial_input) {
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
 	// Inicialmente, el LED parpadeará cuando no esté orientado hacia el grado 0
-	objective_dir = 1;
+	objective_dir = 0;
 
 	print(&huart1, (char*)"Push the botton to start.\n");
 
-	while (!HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
+	while (!bottom){
 		tx_thread_sleep(10); // 0.1s
 	}
 
 	objective_dir = degrees;
 
-	print(&huart1, (char*)"Orientación actual: ", objective_dir);
+	print(&huart1, (char*)"Orientación inicial: ", objective_dir);
+
+	tx_thread_sleep(200); // 200cs -> 2000ms
 
 	while (1) {
 
-		coche->goForward();
-
-		if (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12)){
-			objective_dir = degrees;
-		}
+		makingSquares(coche, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -186,10 +183,11 @@ VOID encodersThread_entry(ULONG initial_input) {
 
 	while (1) {
 		// Speed control
-		if (coche->isMoving()) {
+		if (objective_dir != -1 && coche->isMoving()) {
 			// Update car speed
-			if (abs(deviation_dir) < deviation_threshold)
+			if (abs(deviation_dir) < deviation_threshold){
 				coche->updateSpeed();
+			}
 		}
 
 		cont = (cont + 1) % 100;
@@ -213,14 +211,13 @@ VOID sensorsThread_entry(ULONG initial_input) {
 		if (motionEC_MC_calibrate(0)) {
 			calibrated = true;
 
-			if (objective_dir != 0){
+			bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
+
+			if (objective_dir != -1) {
 				// Calculate deviation from objective direction
 				float dist_left = (360 - degrees) + objective_dir;
 				float dist_right = objective_dir - degrees;
 				deviation_dir = (abs(dist_left) < abs(dist_right)) ? -dist_left : -dist_right;
-
-				print(&huart1, (char*)"Deviation - Objetivo: ");
-				print(&huart1, deviation_dir, (char*)" - ", objective_dir);
 
 				// (factorX < 0) -> left
 				// (factorX > 0) -> right
@@ -232,12 +229,14 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 					blink_counter = (blink_counter + 1) % 10;
 					if (!blink_counter) HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_8);
-					print(&huart1, (char*)"Aplicando corrección...\n");
 				}
 				else {
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 				}
 
+			}
+			else {
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 			}
 
 		}

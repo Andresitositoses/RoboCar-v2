@@ -23,7 +23,6 @@ namespace RoboCar {
 		float speed;
 		float minSpeed;
 		float maxSpeed;
-		bool moving;
 
 	public:
 		// ...
@@ -35,6 +34,8 @@ namespace RoboCar {
 		void goBackward();
 		void rotateLeft();
 		void rotateRight();
+		void rotateLeft(float *current_dir, float *objective_dir, float gyro_degrees);
+		void rotateRight(float *current_dir, float *objective_dir, float gyro_degrees);
 		void stop();
 
 		void setSpeed(float speed);
