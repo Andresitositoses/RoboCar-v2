@@ -32,10 +32,15 @@ static uint8_t mfxstate[STATE_SIZE ];
 #define GBIAS_GYRO_TH_SC                (2.0f*0.002f)
 #define GBIAS_MAG_TH_SC                 (2.0f*0.001500f)
 #define DECIMATION                      1U
+float MagCalStatus = 0;
+float mag_offset_x;
+float mag_offset_y;
+float mag_offset_z;
 
-// For MotionEC
+// For MotionEC and MotionFX
 float AccMatrix[3][3];
 float MagMatrix[3][3];
+float GyrMatrix[3][3];
 
 // Handlers
 extern UART_HandleTypeDef huart1;
@@ -136,7 +141,7 @@ void motionMC_init() {
 	// Initialization
 	char lib_version[VERSION_STR_LENG];
 
-	MotionMC_Initialize(10, 1); // 10 -> time[ms] between update function calls
+	MotionMC_Initialize(ALGO_FREQ / 10, 1); // 10 -> time[ms] between update function calls
 
 	MotionMC_GetLibVersion(lib_version);
 	print(&huart1, (char*) lib_version);
@@ -164,17 +169,13 @@ void motionFX_init() {
 	MotionFX_initialize((MFXState_t*) mfxstate);
 	MotionFX_getKnobs((MFXState_t*) mfxstate, &Knobs);
 
-	Knobs.acc_orientation[0] = 'n';
-	Knobs.acc_orientation[1] = 'w';
-	Knobs.acc_orientation[2] = 'u';
+	Acc_GetOrientation(Knobs.acc_orientation);
+	Gyr_GetOrientation(Knobs.gyro_orientation);
+	Mag_GetOrientation(Knobs.mag_orientation);
 
-	Knobs.gyro_orientation[0] = 'n';
-	Knobs.gyro_orientation[1] = 'w';
-	Knobs.gyro_orientation[2] = 'u';
-
-	Knobs.mag_orientation[0] = 'n';
-	Knobs.mag_orientation[1] = 'e';
-	Knobs.mag_orientation[2] = 'u';
+	calc_matrix(Knobs.acc_orientation, AccMatrix);
+	calc_matrix(Knobs.gyro_orientation, GyrMatrix);
+	calc_matrix(Knobs.mag_orientation, MagMatrix);
 
 	Knobs.gbias_acc_th_sc = GBIAS_ACC_TH_SC;
 	Knobs.gbias_gyro_th_sc = GBIAS_GYRO_TH_SC;
@@ -183,13 +184,16 @@ void motionFX_init() {
 	Knobs.output_type = MFX_ENGINE_OUTPUT_ENU; // east, north, up coordinates
 	Knobs.LMode = 1; // 1-static learning, 2-dynamic learning
 	Knobs.modx = DECIMATION;
+
 	MotionFX_setKnobs((MFXState_t*) mfxstate, &Knobs);
 
 	// Enable 9-axis sensor fusion (ACC + GYRO + MAG)
 	MotionFX_enable_9X((MFXState_t*) mfxstate, MFX_ENGINE_ENABLE);
 
-	// Enable magnetometer calibration
-	MotionFX_MagCal_init(1000U / CAL_FREQ, 1);
+	// Starts magnetometer calibration
+	MotionFX_MagCal_init(10, 1);
+
+	MagCalStatus = 0;
 
 	// Get version
 	MotionFX_GetLibVersion(lib_version);
@@ -537,28 +541,47 @@ bool motionMC_calibrate(bool print_values) {
 
 bool motionFX_calibrate(bool print_values) {
 
-	float mag_x_mG, mag_y_mG, mag_z_mG;
-
-	// Read magnetometer X/Y/Z values in mGauss
-	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
-
 	currTick = HAL_GetTick();
 	time_stamp_uint64 += currTick - prevTick;
 	float delta_time = time_stamp_uint64 / 1000;
 	prevTick = currTick;
 
-	MFX_MagCal_input_t mag_data_in;
-	mag_data_in.mag[0] = mag_x_mG * FROM_MGAUSS_TO_UT50;
-	mag_data_in.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
-	mag_data_in.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
-	mag_data_in.time_stamp = time_stamp_uint64;
-	MotionFX_MagCal_run(&mag_data_in);
+	float mag_x_mG, mag_y_mG, mag_z_mG;
 
-	// Test if calibration data are available and get bias values
-	MFX_MagCal_output_t mag_cal_test;
-	MotionFX_MagCal_getParams(&mag_cal_test);
+	// Read magnetometer X/Y/Z values in mGauss
+	MEMS_Read_MagValue(&mag_x_mG, &mag_y_mG, &mag_z_mG);
 
-	if (mag_cal_test.cal_quality == MFX_MAGCALGOOD) {
+	// If it is not calibrated yet
+	if (MagCalStatus == 0){
+		MFX_MagCal_input_t mag_data_in;
+		mag_data_in.mag[0] = mag_x_mG * FROM_MGAUSS_TO_UT50;
+		mag_data_in.mag[1] = mag_y_mG * FROM_MGAUSS_TO_UT50;
+		mag_data_in.mag[2] = mag_z_mG * FROM_MGAUSS_TO_UT50;
+		mag_data_in.time_stamp = time_stamp_uint64;
+		MotionFX_MagCal_run(&mag_data_in);
+
+		// Test if calibration data are available and get bias values
+		MFX_MagCal_output_t mag_cal_test;
+		MotionFX_MagCal_getParams(&mag_cal_test);
+
+		if (mag_cal_test.cal_quality == MFX_MAGCALGOOD) {
+
+			mag_offset_x = mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS;
+			mag_offset_y = mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS;
+			mag_offset_z = mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS;
+
+			// Stops calibration process
+			MotionFX_MagCal_init(10, 0);
+
+			MagCalStatus = 1;
+		}
+	}
+
+	mag_cal_x = mag_x_mG - mag_offset_x;
+	mag_cal_y = mag_y_mG - mag_offset_y;
+	mag_cal_z = mag_z_mG - mag_offset_z;
+
+	if (MagCalStatus) {
 
 		float acc_x_mg, acc_y_mg, acc_z_mg;
 		float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
@@ -571,41 +594,52 @@ bool motionFX_calibrate(bool print_values) {
 		// Get angular rate X/Y/Z in mdps
 		MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
 
+		// Do sensor orientation transformation: &AccValue, &GyrValue &MagValueComp, data_in.acc, data_in.mag
+		float acc[3] = {acc_x_mg, acc_y_mg, acc_z_mg};
+		float gyr[3] = {gyr_x_mpds, gyr_y_mpds, gyr_z_mpds};
+		float mag[3] = {mag_cal_x, mag_cal_y, mag_cal_z};
+		transform_orientation(acc, data_in.acc, AccMatrix);
+		transform_orientation(gyr, data_in.gyro, GyrMatrix);
+		transform_orientation(mag, data_in.mag, MagMatrix);
+
 		// Convert acceleration from [mg] to [g]
-		data_in.acc[0] = (float) acc_x_mg / 1000.0f;
-		data_in.acc[1] = (float) acc_y_mg / 1000.0f;
-		data_in.acc[2] = (float) acc_z_mg / 1000.0f;
+		data_in.acc[0] = data_in.acc[0] / 1000.0f;
+		data_in.acc[1] = data_in.acc[1] / 1000.0f;
+		data_in.acc[2] = data_in.acc[2] / 1000.0f;
 
 		// Convert angular velocity from [mdps] to [dps]
-		data_in.gyro[0] = (float) gyr_x_mpds / 1000.0f;
-		data_in.gyro[1] = (float) gyr_y_mpds / 1000.0f;
-		data_in.gyro[2] = (float) gyr_z_mpds / 1000.0f;
+		data_in.gyro[0] = data_in.gyro[0] / 1000.0f;
+		data_in.gyro[1] = data_in.gyro[1] / 1000.0f;
+		data_in.gyro[2] = data_in.gyro[2] / 1000.0f;
 
 		// Apply calibration results [uT/50]
-		data_in.mag[0] = mag_data_in.mag[0] - mag_cal_test.hi_bias[0];
-		data_in.mag[1] = mag_data_in.mag[1] - mag_cal_test.hi_bias[1];
-		data_in.mag[2] = mag_data_in.mag[2] - mag_cal_test.hi_bias[2];
+		data_in.mag[0] = data_in.mag[0] * FROM_MGAUSS_TO_UT50;
+		data_in.mag[1] = data_in.mag[1] * FROM_MGAUSS_TO_UT50;
+		data_in.mag[2] = data_in.mag[2] * FROM_MGAUSS_TO_UT50;
 
 		// Run Sensor Fusion algorithm
 		// propagate: estimates the orientation in 3D space by giving more weight to gyroscope data
 		// update: adjusts the predicted value by giving more weight to accelerometer and magnetometer data
-		MotionFX_propagate((MFXState_t*) mfxstate, &data_out, &data_in,
+		MotionFX_propagate(&mfxstate, &data_out, &data_in,
 				&delta_time);
-		MotionFX_update((MFXState_t*) mfxstate, &data_out, &data_in,
+		MotionFX_update(&mfxstate, &data_out, &data_in,
 				&delta_time,
 				NULL);
+
+		print(&huart1, (char*) "heading: ", data_out.headingErr); // yaw
+		//print(&huart1, (char*) "rotation[1]: ", data_out.rotation[1]); // yaw
+		//print(&huart1, (char*) "rotation[2]: ", data_out.rotation[2]); // yaw
+		//print(&huart1, (char*) "rotation[3]: ", data_out.rotation[3]); // yaw
 
 		if (print_values) {
 
 			// Bias
-			print(&huart1, (char*) "mag_cal_test.hi_bias[0]: ",
-					(float) (mag_cal_test.hi_bias[0] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_test.hi_bias[1]: ",
-					(float) (mag_cal_test.hi_bias[1] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_test.hi_bias[2]: ",
-					(float) (mag_cal_test.hi_bias[2] * FROM_UT50_TO_MGAUSS));
-			print(&huart1, (char*) "mag_cal_quality: ",
-					mag_cal_test.cal_quality);
+			print(&huart1, (char*) "mag_offset_x: ",
+					(float) (mag_offset_x * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_offset_y: ",
+					(float) (mag_offset_y * FROM_UT50_TO_MGAUSS));
+			print(&huart1, (char*) "mag_offset_z: ",
+					(float) (mag_offset_y * FROM_UT50_TO_MGAUSS));
 
 			// Quaternion
 			print(&huart1, (char*) "quaternion[0]: ",
@@ -643,17 +677,12 @@ bool motionFX_calibrate(bool print_values) {
 			print(&huart1, (char*) "time_stamp: ", (int) time_stamp_uint64);
 		}
 
-	} else {
+		return true;
 
-		if (print_values) {
-			print(&huart1, (char*) "mag_cal_quality: ",
-					mag_cal_test.cal_quality);
-		}
-
+	}
+	else {
 		return false;
 	}
-
-	return true;
 }
 
 void motionEC_calibrate(bool print_values) {
@@ -761,6 +790,13 @@ bool motionEC_MC_calibrate(bool print_values) {
 //////////////////////////////////////////////////////////////
 
 void Acc_GetOrientation(char *Orientation)
+{
+	Orientation[0] = 'n';
+	Orientation[1] = 'w';
+	Orientation[2] = 'u';
+}
+
+void Gyr_GetOrientation(char *Orientation)
 {
 	Orientation[0] = 'n';
 	Orientation[1] = 'w';

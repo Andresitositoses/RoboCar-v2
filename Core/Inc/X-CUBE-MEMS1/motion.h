@@ -34,6 +34,7 @@ bool motionEC_MC_calibrate(bool print);
 /* Auxiliary functions */
 
 void Acc_GetOrientation(char *Orientation);
+void Gyr_GetOrientation(char *Orientation);
 void Mag_GetOrientation(char *Orientation);
 void calc_matrix(char orientation[], float matrix[][3]);
 void q_conjug(float q_conj[], float q_src[]);
