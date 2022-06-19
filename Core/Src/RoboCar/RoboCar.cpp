@@ -20,7 +20,6 @@ namespace RoboCar {
 		speed = 0;
 		minSpeed = 99999999;
 		maxSpeed = 0;
-		moving = false;
 	}
 
 	/*
@@ -34,31 +33,26 @@ namespace RoboCar {
 	void RoboCar::goForward(){
 		leftWheel->goForward();
 		rightWheel->goForward();
-		moving = true;
 	}
 
 	void RoboCar::goBackward(){
 		leftWheel->goBackward();
 		rightWheel->goBackward();
-		moving = true;
 	}
 
 	void RoboCar::rotateLeft(){
 		leftWheel->goBackward();
 		rightWheel->goForward();
-		moving = true;
 	}
 
 	void RoboCar::rotateRight(){
 		leftWheel->goForward();
 		rightWheel->goBackward();
-		moving = true;
 	}
 
 	void RoboCar::stop(){
 		leftWheel->stop();
 		rightWheel->stop();
-		moving = false;
 	}
 
 	void RoboCar::setSpeed(float speed){
@@ -114,7 +108,7 @@ namespace RoboCar {
 	}
 
 	bool RoboCar::isMoving(){
-		return moving;
+		return leftWheel->isMoving() || rightWheel->isMoving();
 	}
 
 	void RoboCar::calibrate(){

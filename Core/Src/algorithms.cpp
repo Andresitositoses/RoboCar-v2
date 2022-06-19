@@ -21,3 +21,18 @@ void goAway(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *
 	}
 
 }
+
+void goBack(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir) {
+
+	while(1) {
+
+		roboCar->goBackward();
+
+		if (*bottom) {
+			*objective_dir = *current_dir;
+		}
+
+		tx_thread_sleep(1); // 1cs -> 10ms
+	}
+
+}

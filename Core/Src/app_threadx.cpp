@@ -168,7 +168,7 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		goAway(coche, &bottom, &degrees, &objective_dir);
+		goBack(coche, &bottom, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -205,10 +205,10 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
-
 		if (motionEC_MC_calibrate(0)) {
 			calibrated = true;
+
+			bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
 
 			if (objective_dir != -1){
 				// Calculate deviation from objective direction

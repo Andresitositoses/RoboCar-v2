@@ -23,7 +23,6 @@ namespace RoboCar {
 		float speed;
 		float minSpeed;
 		float maxSpeed;
-		bool moving;
 
 	public:
 		// ...
