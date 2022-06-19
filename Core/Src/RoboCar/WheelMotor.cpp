@@ -29,42 +29,28 @@ namespace RoboCar {
 
 	WheelMotor::WheelMotor(Wheel wheel) {
 
-		// Structures initialization
-		this->forwardPin = new RoboCar::GPIO;
-		this->backwardPin = new RoboCar::GPIO;
-		this->speedPin = new RoboCar::PWM;
-		this->encoderPin = new RoboCar::GPIO;
-
 		// GPIOs and PWM configurations
 		switch (wheel) {
 		case LEFT:
 			// Forward
-			this->forwardPin->number = LEFT_WHEEL_FORWARD_PIN;
-			this->forwardPin->port = LEFT_WHEEL_FORWARD_PORT;
+			this->forwardPin = new gpio(LEFT_WHEEL_FORWARD_PIN, LEFT_WHEEL_FORWARD_PORT);
 			// Backward
-			this->backwardPin->number = LEFT_WHEEL_BACKWARD_PIN;
-			this->backwardPin->port = LEFT_WHEEL_BACKWARD_PORT;
+			this->backwardPin = new gpio(LEFT_WHEEL_BACKWARD_PIN, LEFT_WHEEL_BACKWARD_PORT);
 			// Speed
-			this->speedPin->htim = htim16;
-			this->speedPin->channel = LEFT_WHEEL_SPEED_CHANNEL;
+			this->speedPin = new pwm(htim16, LEFT_WHEEL_SPEED_CHANNEL);
 			// Encoder
-			this->encoderPin->number = LEFT_ENCODER_PIN;
-			this->encoderPin->port = LEFT_ENCODER_PORT;
+			this->encoderPin = new gpio(LEFT_ENCODER_PIN, LEFT_ENCODER_PORT);
 			print(&huart1, (char*) "Left wheel created\n");
 			break;
 		case RIGHT:
 			// Forward
-			this->forwardPin->number = RIGHT_WHEEL_FORWARD_PIN;
-			this->forwardPin->port = RIGHT_WHEEL_FORWARD_PORT;
+			this->forwardPin = new gpio(RIGHT_WHEEL_FORWARD_PIN, RIGHT_WHEEL_FORWARD_PORT);
 			// Backward
-			this->backwardPin->number = RIGHT_WHEEL_BACKWARD_PIN;
-			this->backwardPin->port = RIGHT_WHEEL_BACKWARD_PORT;
+			this->backwardPin = new gpio(RIGHT_WHEEL_BACKWARD_PIN, RIGHT_WHEEL_BACKWARD_PORT);
 			// Speed
-			this->speedPin->htim = htim4;
-			this->speedPin->channel = RIGHT_WHEEL_SPEED_CHANNEL;
+			this->speedPin = new pwm(htim4, RIGHT_WHEEL_SPEED_CHANNEL);
 			// Encoder
-			this->encoderPin->number = RIGHT_ENCODER_PIN;
-			this->encoderPin->port = RIGHT_ENCODER_PORT;
+			this->encoderPin = new gpio(RIGHT_ENCODER_PIN, RIGHT_ENCODER_PORT);
 			print(&huart1, (char*) "Right wheel created\n");
 			break;
 		default: // Error
@@ -72,16 +58,14 @@ namespace RoboCar {
 			exit(1);
 		}
 
-		// Start PWM
-		HAL_TIM_PWM_Start(&this->speedPin->htim, this->speedPin->channel);
-
 		// Default speed
 		this->speedPulse = 0;
 		this->pulse = 0;
-		this->speedPin->htim.Instance->CCR1 = this->pulse;
+		this->speedPin->setPulse(pulse);
 
 		// General paramaters initialization
-		moving = false;
+		movingForward = false;
+		movingBackward = false;
 		calibrated = 0;
 		minSpeed = 9999999;
 		maxSpeed = 0;
@@ -92,10 +76,10 @@ namespace RoboCar {
 	 * @brief Remove all wheel pins
 	 */
 	WheelMotor::~WheelMotor() {
-		free(forwardPin);
-		free(backwardPin);
-		free(speedPin);
-		free(encoderPin);
+		delete forwardPin;
+		delete backwardPin;
+		delete speedPin;
+		delete encoderPin;
 	}
 
 	/**
@@ -103,10 +87,10 @@ namespace RoboCar {
 	 */
 	void WheelMotor::goForward() {
 		// Activate forward pin and deactivate backward pin
-		HAL_GPIO_WritePin(forwardPin->port, forwardPin->number, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(backwardPin->port, backwardPin->number, GPIO_PIN_RESET);
+		forwardPin->write(1);
+		backwardPin->write(0);
 		// The wheel is moving
-		moving = true;
+		movingForward = true;
 	}
 
 	/**
@@ -114,20 +98,22 @@ namespace RoboCar {
 	 */
 	void WheelMotor::goBackward() {
 		// Activate backward pin and deactivate forward pin
-		HAL_GPIO_WritePin(backwardPin->port, backwardPin->number, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(forwardPin->port, forwardPin->number, GPIO_PIN_RESET);
+		forwardPin->write(0);
+		backwardPin->write(1);
 		// The wheel is moving
-		moving = true;
+		movingBackward = true;
 	}
 
 	/**
 	 * @brief The wheel stops
 	 */
 	void WheelMotor::stop() {
-		moving = false;
 		// Deactivate forward and backward pins
-		HAL_GPIO_WritePin(forwardPin->port, forwardPin->number, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(backwardPin->port, backwardPin->number, GPIO_PIN_RESET);
+		forwardPin->write(0);
+		backwardPin->write(0);
+		// The wheel is stopped
+		movingForward = false;
+		movingBackward = false;
 	}
 
 	/*
@@ -204,13 +190,13 @@ namespace RoboCar {
 		// Gets the time it takes to change between 0's and 1's MEASURES_FOR_SPEED times
 		for (int i = 0; i < MEASURES_FOR_SPEED; i++) {
 			// Exit the loop in case the wheel is stopped
-			while (HAL_GPIO_ReadPin(this->encoderPin->port, this->encoderPin->number) != 1 && cont++ < MAX_ATTEMPTS_TO_READ);
+			while (this->encoderPin->read() != 1 && cont++ < MAX_ATTEMPTS_TO_READ);
 			if (cont >= MAX_ATTEMPTS_TO_READ) {
 				return 0;
 			} else {
 				cont = 0;
 			}
-			while (HAL_GPIO_ReadPin(this->encoderPin->port, this->encoderPin->number) != 0 && cont++ < MAX_ATTEMPTS_TO_READ);
+			while (this->encoderPin->read() != 0 && cont++ < MAX_ATTEMPTS_TO_READ);
 			if (cont >= MAX_ATTEMPTS_TO_READ) {
 				return 0;
 			} else {
@@ -230,7 +216,7 @@ namespace RoboCar {
 	 * @param currentSpeed Current wheel speed (determined by its corresponding encoder)
 	 */
 	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed) {
-		if (!moving)
+		if (!(movingForward || movingBackward))
 			return;
 
 		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
@@ -251,20 +237,25 @@ namespace RoboCar {
 
 	void WheelMotor::updateSpeed(float factorX, int limit){
 
+		if (!(movingForward || movingBackward))
+			return;
+
 		/*
 		print(&huart1, (char*)"factorX: ", factorX);
 		print(&huart1, (char*)"limit: ", limit);
 		print(&huart1, (char*)"speedPulse: ", speedPulse);
 		*/
 
+		float direction = movingForward ? 1 : -1;
+
 		if (factorX > limit) {
-			pulse = speedPulse + MINIMUN_VARIATION + limit * PULSE_CONSTANT;
+			pulse = speedPulse + direction * (MINIMUN_VARIATION + limit * PULSE_CONSTANT);
 		}
 		else if (factorX < -limit) {
-			pulse = speedPulse - MINIMUN_VARIATION - limit * PULSE_CONSTANT;
+			pulse = speedPulse + direction * (- MINIMUN_VARIATION - limit * PULSE_CONSTANT);
 		}
 		else {
-			pulse = speedPulse + factorX * PULSE_CONSTANT;
+			pulse = speedPulse + direction * factorX * PULSE_CONSTANT;
 		}
 
 		if (pulse > PERIOD)
@@ -325,6 +316,10 @@ namespace RoboCar {
 		calibrated = true;
 	}
 
+	bool WheelMotor::isMoving() {
+		return movingForward || movingBackward;
+	}
+
 	/*
 	 * Loads pulse-speed pairs from an external vector
 	 */
@@ -360,7 +355,7 @@ namespace RoboCar {
 			return;
 		}
 		this->pulse = pulse;
-		this->speedPin->htim.Instance->CCR1 = pulse;
+		this->speedPin->setPulse(pulse);
 	}
 
 } /* namespace RoboCar */
