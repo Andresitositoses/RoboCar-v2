@@ -86,7 +86,8 @@ namespace RoboCar {
 		float maxSpeed;
 
 		// General variables for wheel operation
-		bool moving;
+		bool movingForward;
+		bool movingBackward;
 		bool calibrated;
 		int speedPulse;
 		int pulse;
@@ -110,6 +111,7 @@ namespace RoboCar {
 		float getCurrentSpeed();
 		void updateSpeed(float referenceSpeed, float currentSpeed);
 		void updateSpeed(float factorX, int limit);
+		bool isMoving();
 
 		// Calibration functions
 		void calibrate();

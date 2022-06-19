@@ -64,7 +64,8 @@ namespace RoboCar {
 		this->speedPin->setPulse(pulse);
 
 		// General paramaters initialization
-		moving = false;
+		movingForward = false;
+		movingBackward = false;
 		calibrated = 0;
 		minSpeed = 9999999;
 		maxSpeed = 0;
@@ -89,7 +90,7 @@ namespace RoboCar {
 		forwardPin->write(1);
 		backwardPin->write(0);
 		// The wheel is moving
-		moving = true;
+		movingForward = true;
 	}
 
 	/**
@@ -100,7 +101,7 @@ namespace RoboCar {
 		forwardPin->write(0);
 		backwardPin->write(1);
 		// The wheel is moving
-		moving = true;
+		movingBackward = true;
 	}
 
 	/**
@@ -111,7 +112,8 @@ namespace RoboCar {
 		forwardPin->write(0);
 		backwardPin->write(0);
 		// The wheel is stopped
-		moving = false;
+		movingForward = false;
+		movingBackward = false;
 	}
 
 	/*
@@ -214,7 +216,7 @@ namespace RoboCar {
 	 * @param currentSpeed Current wheel speed (determined by its corresponding encoder)
 	 */
 	void WheelMotor::updateSpeed(float referenceSpeed, float currentSpeed) {
-		if (!moving)
+		if (!(movingForward || movingBackward))
 			return;
 
 		float pulse_change = (referenceSpeed - currentSpeed) * PULSE_CONSTANT;
@@ -235,20 +237,25 @@ namespace RoboCar {
 
 	void WheelMotor::updateSpeed(float factorX, int limit){
 
+		if (!(movingForward || movingBackward))
+			return;
+
 		/*
 		print(&huart1, (char*)"factorX: ", factorX);
 		print(&huart1, (char*)"limit: ", limit);
 		print(&huart1, (char*)"speedPulse: ", speedPulse);
 		*/
 
+		float direction = movingForward ? 1 : -1;
+
 		if (factorX > limit) {
-			pulse = speedPulse + MINIMUN_VARIATION + limit * PULSE_CONSTANT;
+			pulse = speedPulse + direction * (MINIMUN_VARIATION + limit * PULSE_CONSTANT);
 		}
 		else if (factorX < -limit) {
-			pulse = speedPulse - MINIMUN_VARIATION - limit * PULSE_CONSTANT;
+			pulse = speedPulse + direction * (- MINIMUN_VARIATION - limit * PULSE_CONSTANT);
 		}
 		else {
-			pulse = speedPulse + factorX * PULSE_CONSTANT;
+			pulse = speedPulse + direction * factorX * PULSE_CONSTANT;
 		}
 
 		if (pulse > PERIOD)
@@ -307,6 +314,10 @@ namespace RoboCar {
 		// Stops the wheel
 		stop();
 		calibrated = true;
+	}
+
+	bool WheelMotor::isMoving() {
+		return movingForward || movingBackward;
 	}
 
 	/*

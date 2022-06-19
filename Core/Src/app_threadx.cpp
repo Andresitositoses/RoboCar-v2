@@ -164,11 +164,13 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	objective_dir = degrees;
 
-	print(&huart1, (char*)"Orientación actual: ", objective_dir);
+	print(&huart1, (char*)"Orientación inicial: ", objective_dir);
+
+	tx_thread_sleep(200); // 200cs -> 2000ms
 
 	while (1) {
 
-		goAway(coche, &bottom, &degrees, &objective_dir);
+		makingSquares(coche, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -181,10 +183,11 @@ VOID encodersThread_entry(ULONG initial_input) {
 
 	while (1) {
 		// Speed control
-		if (coche->isMoving()) {
+		if (objective_dir != -1 && coche->isMoving()) {
 			// Update car speed
-			if (abs(deviation_dir) < deviation_threshold)
+			if (abs(deviation_dir) < deviation_threshold){
 				coche->updateSpeed();
+			}
 		}
 
 		cont = (cont + 1) % 100;
@@ -205,12 +208,12 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
-
 		if (motionEC_MC_calibrate(0)) {
 			calibrated = true;
 
-			if (objective_dir != -1){
+			bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
+
+			if (objective_dir != -1) {
 				// Calculate deviation from objective direction
 				float dist_left = (360 - degrees) + objective_dir;
 				float dist_right = objective_dir - degrees;
@@ -231,6 +234,9 @@ VOID sensorsThread_entry(ULONG initial_input) {
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 				}
 
+			}
+			else {
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 			}
 
 		}
