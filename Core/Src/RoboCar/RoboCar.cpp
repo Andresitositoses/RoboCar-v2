@@ -156,6 +156,8 @@ namespace RoboCar {
 		leftWheel->showCalibrationValues();
 		print(&huart1, (char*) "Right wheel calibration values:\n");
 		rightWheel->showCalibrationValues();
+		print(&huart1, (char *)"Rango de velocidades: ");
+		print(&huart1, getMinSpeed(), (char *)" --- ", getMaxSpeed());
 	}
 
 }
