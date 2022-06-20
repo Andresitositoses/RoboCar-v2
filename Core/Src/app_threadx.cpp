@@ -50,6 +50,7 @@ float objective_dir = 0;
 float deviation_dir;
 float deviation_threshold = 1.5;
 float factorX = 0; // Indicates how wrong the direction is
+int encoders_flag = 0;
 
 /* USER CODE END PD */
 
@@ -170,7 +171,8 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		makingSquares(coche, &degrees, &objective_dir);
+		//goBack(coche, &bottom, &degrees, &objective_dir);
+		makingSquares(coche, &encoders_flag, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -188,6 +190,9 @@ VOID encodersThread_entry(ULONG initial_input) {
 			if (abs(deviation_dir) < deviation_threshold){
 				coche->updateSpeed();
 			}
+		}
+		else if (encoders_flag) {
+			coche->updateSpeed();
 		}
 
 		cont = (cont + 1) % 100;

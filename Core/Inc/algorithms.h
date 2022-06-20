@@ -20,6 +20,6 @@ void goAway(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *
 
 void goBack(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir);
 
-void makingSquares(RoboCar::RoboCar *roboCar, float *current_dir, float *objective_dir);
+void makingSquares(RoboCar::RoboCar *roboCar, int *encoders_flag, float *current_dir, float *objective_dir);
 
 #endif /* INC_ALGORITHMS_H_ */

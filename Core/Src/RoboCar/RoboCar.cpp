@@ -66,13 +66,14 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setSpeed(10);
+		setMinSpeed();
 		leftWheel->goBackward();
 		rightWheel->goForward();
 
 		// Perform while difference between desired degrees and current degrees be significant
 		while(abs(*current_dir - new_dir) > 2);
 
+		stop();
 		setSpeed(prev_speed);
 
 		// Resuem calls to updateSpeed function
@@ -80,6 +81,12 @@ namespace RoboCar {
 
 	}
 
+	/*
+	 * @brief Makes a right turn gyro_degrees number of degrees
+	 * @param current_dir current estimation orientation
+	 * @param objective_dir have to be set to -1 before perform rotation. After this, set it to current_dir
+	 * @param gyro_degrees degrees to turn
+	 */
 	void RoboCar::rotateRight(float *current_dir, float *objective_dir, float gyro_degrees) {
 
 		float new_dir = (float) (((int)*objective_dir + (int)gyro_degrees) % 360);
@@ -89,13 +96,14 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setSpeed(10);
+		setMinSpeed();
 		leftWheel->goForward();
 		rightWheel->goBackward();
 
 		// Perform while difference between desired degrees and current degrees be significant
 		while(abs(*current_dir - new_dir) > 2);
 
+		stop();
 		setSpeed(prev_speed);
 
 		// Resuem calls to updateSpeed function
