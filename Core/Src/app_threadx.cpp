@@ -151,13 +151,13 @@ VOID mainThread_entry(ULONG initial_input) {
 		tx_thread_sleep(100); // 1s
 	}
 
-	print(&huart1, (char*)"Calibrado con éxito\n");
+	print(&huart1, (char*)"Calibrated successfully.\n");
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
 	// Inicialmente, el LED parpadeará cuando no esté orientado hacia el grado 0
 	objective_dir = 0;
 
-	print(&huart1, (char*)"Push the botton to start.\n");
+	print(&huart1, (char*)"Press the botton to start.\n");
 
 	while (!bottom){
 		tx_thread_sleep(10); // 0.1s
@@ -165,7 +165,7 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	objective_dir = degrees;
 
-	print(&huart1, (char*)"Orientación inicial: ", objective_dir);
+	print(&huart1, (char*)"Initial orientation: ", objective_dir);
 
 	tx_thread_sleep(200); // 200cs -> 2000ms
 
