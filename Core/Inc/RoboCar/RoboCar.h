@@ -34,8 +34,8 @@ namespace RoboCar {
 		void goBackward();
 		void rotateLeft();
 		void rotateRight();
-		void rotateLeft(float *current_dir, float *objective_dir, float gyro_degrees);
-		void rotateRight(float *current_dir, float *objective_dir, float gyro_degrees);
+		void turnLeft(float *current_dir, float *objective_dir, float gyro_degrees);
+		void turnRight(float *current_dir, float *objective_dir, float gyro_degrees);
 		void stop();
 
 		void setSpeed(float speed);
@@ -45,7 +45,9 @@ namespace RoboCar {
 		float getSpeed();
 		float getMinSpeed();
 		float getMaxSpeed();
-		void updateSpeed();
+		float getLeftWheelSpeed();
+		float getRightWheelSpeed();
+		void updateSpeed(float leftSpeed, float rightSpeed);
 		void updateSpeed(float factorX, int limit);
 		bool isMoving();
 

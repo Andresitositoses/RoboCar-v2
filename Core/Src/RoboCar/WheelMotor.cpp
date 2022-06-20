@@ -19,7 +19,7 @@
 #define PULSE_CONSTANT 				5
 
 // Measure parameters
-#define MEASURES_FOR_SPEED          6
+#define MEASURES_FOR_SPEED          5
 #define MAX_ATTEMPTS_TO_READ        450000
 #define CYCLES_PER_SECOND			160000000
 

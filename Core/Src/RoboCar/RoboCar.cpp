@@ -8,6 +8,8 @@
 #include "RoboCar/RoboCar.h"
 #include "print.h"
 
+#define ROTATIONAL_INERTIAL 20
+
 namespace RoboCar {
 
 	/*
@@ -56,7 +58,7 @@ namespace RoboCar {
 	 * @param objective_dir have to be set to -1 before perform rotation. After this, set it to current_dir
 	 * @param gyro_degrees degrees to turn
 	 */
-	void RoboCar::rotateLeft(float *current_dir, float *objective_dir, float gyro_degrees) {
+	void RoboCar::turnLeft(float *current_dir, float *objective_dir, float gyro_degrees) {
 
 		float new_dir = (float) (((int)*objective_dir - (int)gyro_degrees) % 360);
 		if (new_dir < 0) new_dir = 360 + new_dir;
@@ -67,11 +69,10 @@ namespace RoboCar {
 		*objective_dir = -1;
 
 		setMinSpeed();
-		leftWheel->goBackward();
 		rightWheel->goForward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > 2);
+		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIAL);
 
 		stop();
 		setSpeed(prev_speed);
@@ -87,7 +88,7 @@ namespace RoboCar {
 	 * @param objective_dir have to be set to -1 before perform rotation. After this, set it to current_dir
 	 * @param gyro_degrees degrees to turn
 	 */
-	void RoboCar::rotateRight(float *current_dir, float *objective_dir, float gyro_degrees) {
+	void RoboCar::turnRight(float *current_dir, float *objective_dir, float gyro_degrees) {
 
 		float new_dir = (float) (((int)*objective_dir + (int)gyro_degrees) % 360);
 		float prev_speed = speed;
@@ -98,10 +99,9 @@ namespace RoboCar {
 
 		setMinSpeed();
 		leftWheel->goForward();
-		rightWheel->goBackward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > 2);
+		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIAL);
 
 		stop();
 		setSpeed(prev_speed);
@@ -156,9 +156,15 @@ namespace RoboCar {
 		return maxSpeed;
 	}
 
-	void RoboCar::updateSpeed(){
-		float leftSpeed = leftWheel->getCurrentSpeed();
-		float rightSpeed = rightWheel->getCurrentSpeed();
+	float RoboCar::getLeftWheelSpeed() {
+		return leftWheel->getCurrentSpeed();
+	}
+
+	float RoboCar::getRightWheelSpeed() {
+		return rightWheel->getCurrentSpeed();
+	}
+
+	void RoboCar::updateSpeed(float leftSpeed, float rightSpeed){
 		leftWheel->updateSpeed(speed, leftSpeed);
 		rightWheel->updateSpeed(speed, rightSpeed);
 	}

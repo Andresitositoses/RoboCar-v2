@@ -46,11 +46,11 @@
 bool bottom = false;
 bool calibrated = false;
 extern float degrees;
-float objective_dir = 0;
+float objective_dir = -1;
 float deviation_dir;
 float deviation_threshold = 1.5;
 float factorX = 0; // Indicates how wrong the direction is
-int encoders_flag = 0;
+int centimeters = 0; // 1 switch between 0 and 1 is equals to 1cm
 
 /* USER CODE END PD */
 
@@ -142,7 +142,7 @@ void MX_ThreadX_Init(void) {
 // Main thread
 VOID mainThread_entry(ULONG initial_input) {
 
-	coche->loadCalibration();
+	coche->calibrate();
 	coche->showCalibrations();
 	coche->setSpeed(16);
 
@@ -172,7 +172,7 @@ VOID mainThread_entry(ULONG initial_input) {
 	while (1) {
 
 		//goBack(coche, &bottom, &degrees, &objective_dir);
-		makingSquares(coche, &encoders_flag, &degrees, &objective_dir);
+		makingSquares(coche, &centimeters, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -182,17 +182,25 @@ VOID mainThread_entry(ULONG initial_input) {
 VOID encodersThread_entry(ULONG initial_input) {
 
 	int cont = 0;
+	float leftSpeed, rightSpeed;
 
 	while (1) {
-		// Speed control
+
+		// Get wheels speeds
+		leftSpeed = coche->getLeftWheelSpeed();
+		centimeters += 5; // 5 switches -> 5cm
+		rightSpeed = coche->getRightWheelSpeed();
+		centimeters += 5; // 5 switches -> 5cm
+
+		// Car is moving in a straight line
 		if (objective_dir != -1 && coche->isMoving()) {
-			// Update car speed
+			// Car is oriented correctly
 			if (abs(deviation_dir) < deviation_threshold){
-				coche->updateSpeed();
+				coche->updateSpeed(leftSpeed, rightSpeed);
 			}
 		}
-		else if (encoders_flag) {
-			coche->updateSpeed();
+		else {
+			centimeters = 0;
 		}
 
 		cont = (cont + 1) % 100;
