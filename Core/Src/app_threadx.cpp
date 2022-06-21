@@ -186,21 +186,23 @@ VOID encodersThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		// Get wheels speeds
-		leftSpeed = coche->getLeftWheelSpeed();
-		centimeters += 5; // 5 switches -> 5cm
-		rightSpeed = coche->getRightWheelSpeed();
-		centimeters += 5; // 5 switches -> 5cm
+		if (coche->isMoving()) {
+			// Get wheels speeds
+			leftSpeed = coche->getLeftWheelSpeed();
+			centimeters += 5; // 5 switches -> 5cm
+			rightSpeed = coche->getRightWheelSpeed();
+			centimeters += 5; // 5 switches -> 5cm
 
-		// Car is moving in a straight line
-		if (objective_dir != -1 && coche->isMoving()) {
-			// Car is oriented correctly
-			if (abs(deviation_dir) < deviation_threshold){
-				coche->updateSpeed(leftSpeed, rightSpeed);
+			// Car is moving in a straight line
+			if (objective_dir != -1) {
+				// Car is oriented correctly
+				if (abs(deviation_dir) < deviation_threshold){
+					coche->updateSpeed(leftSpeed, rightSpeed);
+				}
 			}
-		}
-		else {
-			centimeters = 0;
+			else {
+				centimeters = 0;
+			}
 		}
 
 		cont = (cont + 1) % 100;
