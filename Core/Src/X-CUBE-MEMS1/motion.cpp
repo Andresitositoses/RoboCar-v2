@@ -112,6 +112,9 @@ void motionAC2_init() {
 
 void motionGC_init() {
 
+	__CRC_CLK_ENABLE()
+		;
+
 	float sample_frequency = SAMPLE_FREQUENCY;
 
 	// Initialization
