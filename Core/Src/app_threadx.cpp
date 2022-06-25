@@ -189,9 +189,9 @@ VOID encodersThread_entry(ULONG initial_input) {
 		if (coche->isMoving()) {
 			// Get wheels speeds
 			leftSpeed = coche->getLeftWheelSpeed();
-			centimeters += 5; // 5 switches -> 5cm
+			centimeters += 10; // 5 cog teeth -> 10cm
 			rightSpeed = coche->getRightWheelSpeed();
-			centimeters += 5; // 5 switches -> 5cm
+			centimeters += 10; // 5 cog teeth -> 10cm
 
 			// Car is moving in a straight line
 			if (objective_dir != -1) {

@@ -48,7 +48,7 @@ void makingSquares(RoboCar::RoboCar *roboCar, int *centimeters, float *current_d
 
 		roboCar->goForward();
 
-		if (*centimeters == 35) { // every 35 cm
+		if (*centimeters == 60) { // every 60 cm
 			roboCar->turnRight(current_dir, objective_dir, 90);
 			*centimeters = 0;
 		}
