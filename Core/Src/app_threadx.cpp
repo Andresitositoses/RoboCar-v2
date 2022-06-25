@@ -172,7 +172,7 @@ VOID mainThread_entry(ULONG initial_input) {
 	while (1) {
 
 		//goBack(coche, &bottom, &degrees, &objective_dir);
-		makingSquares(coche, &centimeters, &degrees, &objective_dir);
+		makingUnmakingSquares(coche, &centimeters, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -189,9 +189,11 @@ VOID encodersThread_entry(ULONG initial_input) {
 		if (coche->isMoving()) {
 			// Get wheels speeds
 			leftSpeed = coche->getLeftWheelSpeed();
-			centimeters += 10; // 5 cog teeth -> 10cm
+			if (leftSpeed != 0)
+				centimeters += 10; // 5 cog teeth -> 10cm
 			rightSpeed = coche->getRightWheelSpeed();
-			centimeters += 10; // 5 cog teeth -> 10cm
+			if (rightSpeed != 0)
+				centimeters += 10; // 5 cog teeth -> 10cm
 
 			// Car is moving in a straight line
 			if (objective_dir != -1) {
