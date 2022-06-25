@@ -8,7 +8,8 @@
 #include "RoboCar/RoboCar.h"
 #include "print.h"
 
-#define ROTATIONAL_INERTIAL 20
+#define ROTATIONAL_INERTIA 20
+#define SPIN_INERTIA 20
 
 namespace RoboCar {
 
@@ -52,6 +53,54 @@ namespace RoboCar {
 		rightWheel->goBackward();
 	}
 
+	void RoboCar::rotateLeft(float *current_dir, float *objective_dir, float gyro_degrees){
+
+		float new_dir = (float) (((int)*objective_dir - (int)gyro_degrees) % 360);
+		if (new_dir < 0) new_dir = 360 + new_dir;
+		float prev_speed = speed;
+		stop();
+
+		// Stop calling updateSpeed function
+		*objective_dir = -1;
+
+		setMinSpeed();
+		leftWheel->goBackward();
+		rightWheel->goForward();
+
+		// Perform while difference between desired degrees and current degrees be significant
+		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIA);
+
+		stop();
+		setSpeed(prev_speed);
+
+		// Resuem calls to updateSpeed function
+		*objective_dir = new_dir;
+	}
+
+	void RoboCar::rotateRight(float *current_dir, float *objective_dir, float gyro_degrees){
+
+		float new_dir = (float) (((int)*objective_dir - (int)gyro_degrees) % 360);
+		if (new_dir < 0) new_dir = 360 + new_dir;
+		float prev_speed = speed;
+		stop();
+
+		// Stop calling updateSpeed function
+		*objective_dir = -1;
+
+		setMinSpeed();
+		leftWheel->goForward();
+		rightWheel->goBackward();
+
+		// Perform while difference between desired degrees and current degrees be significant
+		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIA);
+
+		stop();
+		setSpeed(prev_speed);
+
+		// Resuem calls to updateSpeed function
+		*objective_dir = new_dir;
+	}
+
 	/*
 	 * @brief Makes a left turn gyro_degrees number of degrees
 	 * @param current_dir current estimation orientation
@@ -68,11 +117,11 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setMinSpeed();
+		setMeanSpeed();
 		rightWheel->goForward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIAL);
+		while(abs(*current_dir - new_dir) > SPIN_INERTIA);
 
 		stop();
 		setSpeed(prev_speed);
@@ -97,11 +146,11 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setMinSpeed();
+		setMeanSpeed();
 		leftWheel->goForward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIAL);
+		while(abs(*current_dir - new_dir) > SPIN_INERTIA);
 
 		stop();
 		setSpeed(prev_speed);

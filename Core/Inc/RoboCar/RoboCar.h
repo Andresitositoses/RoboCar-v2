@@ -34,6 +34,8 @@ namespace RoboCar {
 		void goBackward();
 		void rotateLeft();
 		void rotateRight();
+		void rotateLeft(float *current_dir, float *objective_dir, float gyro_degrees);
+		void rotateRight(float *current_dir, float *objective_dir, float gyro_degrees);
 		void turnLeft(float *current_dir, float *objective_dir, float gyro_degrees);
 		void turnRight(float *current_dir, float *objective_dir, float gyro_degrees);
 		void stop();

@@ -284,7 +284,7 @@ namespace RoboCar {
 		stop();
 		tx_thread_sleep(200); // 2 seconds
 
-		// Calibrates for 10 different pulses
+		// Calibrates for 20 different pulses
 		goForward();
 		for (int pulse = 0; pulse <= PERIOD; pulse += 50) {
 			// Set incremented pulse
@@ -297,7 +297,7 @@ namespace RoboCar {
 				speed += getCurrentSpeed();
 			}
 			speed /= MEASURES_FOR_SPEED;
-			print(&huart1, (char *)"Velocidad actual: ", speed);
+			print(&huart1, (char *)"Current speed: ", speed);
 
 			// Adds a new pulse-speed pair to the the vector (only if the wheel is moving)
 			if (speed > 0) {
