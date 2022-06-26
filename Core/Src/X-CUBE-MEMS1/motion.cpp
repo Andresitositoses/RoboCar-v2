@@ -386,7 +386,7 @@ void motionGC_calibrate(bool print_values) {
 	// Read accelerometer and gyroscope values
 	int bias_update = 0;
 	float acc_x_mg, acc_y_mg, acc_z_mg;
-	float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
+	float gyr_x_mdps, gyr_y_mdps, gyr_z_mdps;
 	MGC_input_t data_in = { data_in.Acc[0] = 0.0f, data_in.Acc[1] = 0.0f,
 			data_in.Acc[2] = 0.0f, data_in.Gyro[0] = 0.0f, data_in.Gyro[1] =
 					0.0f, data_in.Gyro[2] = 0.0f };
@@ -396,7 +396,7 @@ void motionGC_calibrate(bool print_values) {
 	MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
 
 	// Get angular rate X/Y/Z in mdps
-	MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
+	MEMS_Read_GyroValue(&gyr_x_mdps, &gyr_y_mdps, &gyr_z_mdps);
 
 	// Convert acceleration from [mg] to [g]
 	data_in.Acc[0] = (float) acc_x_mg / 1000.0f;
@@ -404,9 +404,9 @@ void motionGC_calibrate(bool print_values) {
 	data_in.Acc[2] = (float) acc_z_mg / 1000.0f;
 
 	// Convert angular velocity from [mdps] to [dps]
-	data_in.Gyro[0] = (float) gyr_x_mpds / 1000.0f;
-	data_in.Gyro[1] = (float) gyr_y_mpds / 1000.0f;
-	data_in.Gyro[2] = (float) gyr_z_mpds / 1000.0f;
+	data_in.Gyro[0] = (float) gyr_x_mdps / 1000.0f;
+	data_in.Gyro[1] = (float) gyr_y_mdps / 1000.0f;
+	data_in.Gyro[2] = (float) gyr_z_mdps / 1000.0f;
 
 	// Gyroscope calibration algorithm update
 	MotionGC_Update(&data_in, &data_out, &bias_update);
@@ -415,9 +415,9 @@ void motionGC_calibrate(bool print_values) {
 	MotionGC_GetCalParams(&data_out);
 
 	// Do offset & scale factor calibration (bias values [mdps])
-	gyr_cal_x = gyr_x_mpds - gyro_bias_to_mdps(data_out.GyroBiasX);
-	gyr_cal_y = gyr_y_mpds - gyro_bias_to_mdps(data_out.GyroBiasY);
-	gyr_cal_z = gyr_z_mpds - gyro_bias_to_mdps(data_out.GyroBiasZ);
+	gyr_cal_x = gyr_x_mdps - gyro_bias_to_mdps(data_out.GyroBiasX);
+	gyr_cal_y = gyr_y_mdps - gyro_bias_to_mdps(data_out.GyroBiasY);
+	gyr_cal_z = gyr_z_mdps - gyro_bias_to_mdps(data_out.GyroBiasZ);
 
 	if (print_values) {
 
@@ -431,11 +431,11 @@ void motionGC_calibrate(bool print_values) {
 
 		// Data convertion
 		print(&huart1, (char*) "Gyr_x's value: ");
-		print(&huart1, gyr_x_mpds, (char*) " --> ", gyr_cal_x);
+		print(&huart1, gyr_x_mdps, (char*) " --> ", gyr_cal_x);
 		print(&huart1, (char*) "Gyr_y's value: ");
-		print(&huart1, gyr_y_mpds, (char*) " --> ", gyr_cal_y);
+		print(&huart1, gyr_y_mdps, (char*) " --> ", gyr_cal_y);
 		print(&huart1, (char*) "Gyr_z's value: ");
-		print(&huart1, gyr_z_mpds, (char*) " --> ", gyr_cal_z);
+		print(&huart1, gyr_z_mdps, (char*) " --> ", gyr_cal_z);
 
 		print(&huart1, (char*) "bias_update: ", bias_update);
 	}
@@ -587,7 +587,7 @@ bool motionFX_calibrate(bool print_values) {
 	if (MagCalStatus) {
 
 		float acc_x_mg, acc_y_mg, acc_z_mg;
-		float gyr_x_mpds, gyr_y_mpds, gyr_z_mpds;
+		float gyr_x_mdps, gyr_y_mdps, gyr_z_mdps;
 		MFX_input_t data_in;
 		MFX_output_t data_out;
 
@@ -595,11 +595,11 @@ bool motionFX_calibrate(bool print_values) {
 		MEMS_Read_AccValue(&acc_x_mg, &acc_y_mg, &acc_z_mg);
 
 		// Get angular rate X/Y/Z in mdps
-		MEMS_Read_GyroValue(&gyr_x_mpds, &gyr_y_mpds, &gyr_z_mpds);
+		MEMS_Read_GyroValue(&gyr_x_mdps, &gyr_y_mdps, &gyr_z_mdps);
 
 		// Do sensor orientation transformation: &AccValue, &GyrValue &MagValueComp, data_in.acc, data_in.mag
 		float acc[3] = {acc_x_mg, acc_y_mg, acc_z_mg};
-		float gyr[3] = {gyr_x_mpds, gyr_y_mpds, gyr_z_mpds};
+		float gyr[3] = {gyr_x_mdps, gyr_y_mdps, gyr_z_mdps};
 		float mag[3] = {mag_cal_x, mag_cal_y, mag_cal_z};
 		transform_orientation(acc, data_in.acc, AccMatrix);
 		transform_orientation(gyr, data_in.gyro, GyrMatrix);
