@@ -7,12 +7,12 @@
 
 #include "algorithms.h"
 
-void goAway(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir) {
+void goAway(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *objective_dir) {
 	while(1) {
 
 		roboCar->goForward();
 
-		if (*bottom) {
+		if (*button) {
 			*objective_dir = *current_dir;
 		}
 
@@ -20,7 +20,7 @@ void goAway(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *
 	}
 }
 
-void goBack(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir) {
+void goBack(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *objective_dir) {
 
 	tx_thread_sleep(200); // 200cs -> 2000ms
 
@@ -28,7 +28,7 @@ void goBack(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *
 
 		roboCar->goBackward();
 
-		if (*bottom) {
+		if (*button) {
 			*objective_dir = *current_dir;
 		}
 

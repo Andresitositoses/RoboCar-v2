@@ -16,9 +16,9 @@
 // UART communication handler
 extern UART_HandleTypeDef huart1;
 
-void goAway(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir);
+void goAway(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *objective_dir);
 
-void goBack(RoboCar::RoboCar *roboCar, bool *bottom, float *current_dir, float *objective_dir);
+void goBack(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *objective_dir);
 
 void makingSquares(RoboCar::RoboCar *roboCar, int *centimeters, float *current_dir, float *objective_dir);
 

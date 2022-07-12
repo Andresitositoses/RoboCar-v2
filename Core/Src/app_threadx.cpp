@@ -43,7 +43,6 @@
 #define ENCODERS_STACK_SIZE 2048
 #define SENSORS_STACK_SIZE 8192
 
-bool bottom = false;
 bool calibrated = false;
 extern float degrees;
 float objective_dir = -1;
@@ -159,7 +158,10 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	print(&huart1, (char*)"Press the botton to start.\n");
 
-	while (!bottom){
+	bool button = false;
+
+	while (!button){
+		button = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
 		tx_thread_sleep(10); // 0.1s
 	}
 
@@ -171,7 +173,7 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	while (1) {
 
-		//goBack(coche, &bottom, &degrees, &objective_dir);
+		//goBack(coche, &button, &degrees, &objective_dir);
 		makingUnmakingSquares(coche, &centimeters, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
@@ -227,8 +229,6 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 		if (motionEC_MC_calibrate(0)) {
 			calibrated = true;
-
-			bottom = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
 
 			if (objective_dir != -1) {
 				// Calculate deviation from objective direction
