@@ -71,6 +71,7 @@ extern UART_HandleTypeDef huart1;
 uint8_t mainThread_stack[MAINTHREAD_STACK_SIZE];
 TX_THREAD mainThread_ptr;
 RoboCar::RoboCar *coche;
+bool button = false;
 
 // Encoder thread
 uint8_t encondersThread_stack[ENCODERS_STACK_SIZE];
@@ -158,10 +159,7 @@ VOID mainThread_entry(ULONG initial_input) {
 
 	print(&huart1, (char*)"Press the botton to start.\n");
 
-	bool button = false;
-
 	while (!button){
-		button = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
 		tx_thread_sleep(10); // 0.1s
 	}
 
@@ -229,6 +227,8 @@ VOID sensorsThread_entry(ULONG initial_input) {
 
 		if (motionEC_MC_calibrate(0)) {
 			calibrated = true;
+
+			button = (HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_12) == 1);
 
 			if (objective_dir != -1) {
 				// Calculate deviation from objective direction
