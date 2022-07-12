@@ -783,6 +783,19 @@ bool motionEC_MC_calibrate(bool print_values) {
 		print(&huart1, (char*) "gravity[0]: ", data_out.gravity[0]);
 		print(&huart1, (char*) "gravity[1]: ", data_out.gravity[1]);
 		print(&huart1, (char*) "gravity[2]: ", data_out.gravity[2]);
+
+		print(&huart1, (char*) "i_gyro[0]: ", data_out.i_gyro[0]);
+		print(&huart1, (char*) "i_gyro[1]: ", data_out.i_gyro[1]);
+		print(&huart1, (char*) "i_gyro[2]: ", data_out.i_gyro[2]);
+
+		print(&huart1, (char*) "linear[0]: ", data_out.linear[0]);
+		print(&huart1, (char*) "linear[1]: ", data_out.linear[1]);
+		print(&huart1, (char*) "linear[2]: ", data_out.linear[2]);
+
+		print(&huart1, (char*) "quaternion[0]: ", data_out.quaternion[0]);
+		print(&huart1, (char*) "quaternion[1]: ", data_out.quaternion[1]);
+		print(&huart1, (char*) "quaternion[2]: ", data_out.quaternion[2]);
+		print(&huart1, (char*) "quaternion[3]: ", data_out.quaternion[3]);
 	}
 
 	return true;
