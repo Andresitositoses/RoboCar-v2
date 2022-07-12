@@ -8,7 +8,7 @@
 #include "RoboCar/RoboCar.h"
 #include "print.h"
 
-#define ROTATIONAL_INERTIA 20
+#define ROTATIONAL_INERTIA 50
 #define SPIN_INERTIA 20
 
 namespace RoboCar {
@@ -68,7 +68,12 @@ namespace RoboCar {
 		rightWheel->goForward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIA);
+		bool oriented = false;
+		while(!oriented){
+			if ((abs(((360 - *current_dir) + new_dir)) < ROTATIONAL_INERTIA)
+					|| abs(new_dir - *current_dir) < ROTATIONAL_INERTIA)
+				oriented = true;
+		}
 
 		stop();
 		setSpeed(prev_speed);
@@ -79,7 +84,7 @@ namespace RoboCar {
 
 	void RoboCar::rotateRight(float *current_dir, float *objective_dir, float gyro_degrees){
 
-		float new_dir = (float) (((int)*objective_dir - (int)gyro_degrees) % 360);
+		float new_dir = (float) (((int)*objective_dir + (int)gyro_degrees) % 360);
 		if (new_dir < 0) new_dir = 360 + new_dir;
 		float prev_speed = speed;
 		stop();
@@ -92,7 +97,12 @@ namespace RoboCar {
 		rightWheel->goBackward();
 
 		// Perform while difference between desired degrees and current degrees be significant
-		while(abs(*current_dir - new_dir) > ROTATIONAL_INERTIA);
+		bool oriented = false;
+		while(!oriented){
+			if ((abs(((360 - *current_dir) + new_dir)) < ROTATIONAL_INERTIA)
+					|| abs(new_dir - *current_dir) < ROTATIONAL_INERTIA)
+				oriented = true;
+		}
 
 		stop();
 		setSpeed(prev_speed);
@@ -126,7 +136,7 @@ namespace RoboCar {
 		stop();
 		setSpeed(prev_speed);
 
-		// Resuem calls to updateSpeed function
+		// Resume calls to updateSpeed function
 		*objective_dir = new_dir;
 
 	}
