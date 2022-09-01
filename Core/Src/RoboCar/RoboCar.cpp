@@ -8,7 +8,7 @@
 #include "RoboCar/RoboCar.h"
 #include "print.h"
 
-#define ROTATIONAL_INERTIA 50
+#define ROTATIONAL_INERTIA 60
 #define SPIN_INERTIA 20
 
 namespace RoboCar {
@@ -63,7 +63,7 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setMinSpeed();
+		setSpeed(getMinSpeed()+2);
 		leftWheel->goBackward();
 		rightWheel->goForward();
 
@@ -92,7 +92,7 @@ namespace RoboCar {
 		// Stop calling updateSpeed function
 		*objective_dir = -1;
 
-		setMinSpeed();
+		setSpeed(getMinSpeed()+2);
 		leftWheel->goForward();
 		rightWheel->goBackward();
 

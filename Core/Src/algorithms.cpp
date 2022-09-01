@@ -13,6 +13,7 @@ void goAway(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *
 		roboCar->goForward();
 
 		if (*button) {
+			print(&huart1, (char*)"Dirección objetivo actualizada.\n");
 			*objective_dir = *current_dir;
 		}
 
@@ -49,7 +50,28 @@ void makingSquares(RoboCar::RoboCar *roboCar, int *centimeters, float *current_d
 		roboCar->goForward();
 
 		if (*centimeters == 60) { // every 60 cm
-			roboCar->turnRight(current_dir, objective_dir, 90);
+			roboCar->rotateRight(current_dir, objective_dir, 90);
+			*centimeters = 0;
+		}
+
+		tx_thread_sleep(delay); // 10ms
+	}
+}
+
+void makingSquaresReverse(RoboCar::RoboCar *roboCar, int *centimeters, float *current_dir, float *objective_dir) {
+
+	tx_thread_sleep(200); // 200cs -> 2000ms
+
+	int delay = 1; // 1 cs -> 10 ms
+	*centimeters = 0;
+	roboCar->setSpeed(10);
+
+	while(1) {
+
+		roboCar->goBackward();
+
+		if (*centimeters == 60) { // every 60 cm
+			roboCar->rotateLeft(current_dir, objective_dir, 90);
 			*centimeters = 0;
 		}
 

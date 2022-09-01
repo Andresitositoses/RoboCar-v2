@@ -22,6 +22,8 @@ void goBack(RoboCar::RoboCar *roboCar, bool *button, float *current_dir, float *
 
 void makingSquares(RoboCar::RoboCar *roboCar, int *centimeters, float *current_dir, float *objective_dir);
 
+void makingSquaresReverse(RoboCar::RoboCar *roboCar, int *centimeters, float *current_dir, float *objective_dir);
+
 void makingUnmakingSquares(RoboCar::RoboCar *roboCar, int *centimeters, float *current_dir, float *objective_dir);
 
 #endif /* INC_ALGORITHMS_H_ */

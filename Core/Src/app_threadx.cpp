@@ -143,6 +143,7 @@ void MX_ThreadX_Init(void) {
 VOID mainThread_entry(ULONG initial_input) {
 
 	coche->calibrate();
+	//coche->loadCalibration();
 	coche->showCalibrations();
 	coche->setSpeed(16);
 
@@ -172,7 +173,10 @@ VOID mainThread_entry(ULONG initial_input) {
 	while (1) {
 
 		//goBack(coche, &button, &degrees, &objective_dir);
-		makingUnmakingSquares(coche, &centimeters, &degrees, &objective_dir);
+		//makingUnmakingSquares(coche, &centimeters, &degrees, &objective_dir);
+		//goAway(coche, &button, &degrees, &objective_dir);
+		//makingSquares(coche, &centimeters, &degrees, &objective_dir);
+		makingSquaresReverse(coche, &centimeters, &degrees, &objective_dir);
 
 		tx_thread_sleep(100); // 1s
 	}
@@ -239,8 +243,9 @@ VOID sensorsThread_entry(ULONG initial_input) {
 				// (factorX < 0) -> left
 				// (factorX > 0) -> right
 				if (abs(deviation_dir) > deviation_threshold){
+					print(&huart1, (char*)"Aplicando corrección...\n");
 
-					factorX = deviation_dir / 7.5;
+					factorX = deviation_dir / 5;
 
 					coche->updateSpeed(factorX, 3);
 
