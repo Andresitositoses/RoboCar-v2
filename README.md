@@ -42,4 +42,4 @@ Establecido el algoritmo y completada la calibración, bastará con pulsar el bo
 
 ### Robot en ejecución
 
-A continuación se muestra el proceso de calibración, así como algunos ejemplos: https://youtu.be/xn1RKDEi2k0
+En el siguiente enlace se muestra el proceso de calibración, así como algunos ejemplos: https://youtu.be/xn1RKDEi2k0
