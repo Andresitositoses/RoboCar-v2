@@ -26,7 +26,7 @@ El núcleo de este robot se trata del microcontrolador STM32U585AI, por lo que s
 
 ## Utilización de la plataforma robótica
 
-# Calibración inicial
+### Calibración inicial
 
 Para el correcto funcionamiento del robot, será necesario pasar por un proceso previo de calibración. Este se completará en dos pasos:
 - Calibración de las ruedas, en la que se someterá a las ruedas a diferentes velocidades.
@@ -34,12 +34,12 @@ Para el correcto funcionamiento del robot, será necesario pasar por un proceso 
 
 Finalizada la calibración, se encenderá un LED.
 
-# Ejecución del algoritmo
+### Ejecución del algoritmo
 
 El algoritmo que ejecutará el robot será el especificado en el hilo principal (*mainThread_entry*) del archivo *Src/app_thread.cpp*. En *Src/algorithms.cpp* se encuentran una serie de ejemplos que abarcan toda la funcionalidad de la plataforma robótica.
 
 Establecido el algoritmo y completada la calibración, bastará con pulsar el botón que hay junto al LED mencionado para que el robot comience su ejecución.
 
-# Robot en ejecución
+### Robot en ejecución
 
 A continuación se muestra el proceso de calibración, así como algunos ejemplos: https://youtu.be/xn1RKDEi2k0
