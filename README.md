@@ -2,7 +2,7 @@
 
 El robot que se muestra a continuación está diseñado para ejecutar los algoritmos que el usuario tenga programados. Para que estos se puedan ejecutar con precisión, se utilizarán una serie de sensores (integrados en una placa de desarrollo) y el Filtro de Kalman.
 
-![RoboCar](https://github.com/Andresitositoses/RoboCar-v2/tree/main/images/delantera.png)
+![alt text](https://github.com/Andresitositoses/RoboCar-v2/tree/main/images/delantera.png)
 
 ## Elementos implicados
 
